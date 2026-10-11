@@ -2022,12 +2022,20 @@ const LIBS = {
 const loaded = {};
 function loadScript(src){ return loaded[src] || (loaded[src] = new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => { delete loaded[src]; rej(new Error('load')); }; document.head.appendChild(s); })); }
 async function loadLib(k){ for (const s of LIBS[k]) await loadScript(s); }
-let dlNs;
+const MIME = {pdf: 'application/pdf', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'};
 async function saveFile(filename, data){
-  if (dlNs === undefined) dlNs = window.claude && window.claude.use ? await window.claude.use('downloads') : null;
-  if (!dlNs) { toast('Export works when this page is open in Claude.'); return; }
-  try { await dlNs.save({filename, data}); toast('Saved ' + filename); }
-  catch (e) { if (e && e.code === 'declined') return; toast(e && e.code === 'rate_limited' ? 'A save is already waiting for your answer.' : 'This export could not be saved here.'); }
+  // Plain browser download: works in any browser, on any host, with no Claude runtime.
+  try {
+    const ext = filename.split('.').pop().toLowerCase();
+    const blob = data instanceof Blob ? data : new Blob([data], {type: MIME[ext] || 'application/octet-stream'});
+    if (window.navigator && window.navigator.msSaveOrOpenBlob) { window.navigator.msSaveOrOpenBlob(blob, filename); toast('Saved ' + filename); return; }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.rel = 'noopener'; a.style.display = 'none';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    toast('Downloaded ' + filename);
+  } catch (e) { toast('This browser blocked the download. Try another browser.'); }
 }
 const STAMP = '26 Sep 2026';
 const TAG = "Real-time view of Education Above All's global investment in higher education. Scholarship KPIs and finances reflect direct beneficiary targets.";
