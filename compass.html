@@ -1,4 +1,3 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Opportunity Compass</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,400;8..144,500;8..144,650;8..144,800&family=Roboto+Mono:wght@400;500&display=swap">
@@ -111,6 +110,21 @@ td a{color:var(--red-ink)}
 .welcome{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:28px;display:grid;gap:14px}
 .welcome h2{margin:0;font-size:22px;letter-spacing:-.01em}
 .newform{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;align-items:end}
+
+.blocks{grid-template-columns:repeat(9,minmax(0,1fr))}
+@media (max-width:720px){.blocks{grid-template-columns:repeat(5,minmax(0,1fr))}}
+.rat{gap:10px}
+.verdict{margin:0;font-size:16px;font-weight:500;line-height:1.45;max-width:75ch}
+.ratcols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px}
+.ratcols h3{margin:0 0 6px;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+.ratcols h3.ok{color:var(--good)} .ratcols h3.wn{color:var(--warn)}
+.ratcols ul{margin:0;padding-left:18px;display:grid;gap:5px;font-size:14px}
+.gain{font-family:var(--f-num);font-size:12px;color:var(--warn);background:var(--warn-tint);padding:1px 6px;border-radius:999px;white-space:nowrap}
+.chk{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--muted)}
+.chk input{accent-color:var(--red)}
+.ev .src.one{grid-template-columns:minmax(0,1fr)}
+.seg label{padding:6px 10px}
+input:disabled{background:var(--soft);color:var(--muted)}
 @media (prefers-reduced-motion:no-preference){.blk i span{transition:width .25s}}
 </style>
 
@@ -146,7 +160,7 @@ td a{color:var(--red-ink)}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 /* ---------- The rulebook ---------- */
-const RULES_VERSION='Rules v3 · country guide reviewed 1 November 2026';
+const RULES_VERSION='Rules v4 · country guide reviewed 1 November 2026';
 const SRC={
   gsf:'https://www.khaama.com/qatar-humanitarian-support-afghanistan/',
   afg:'https://www.ariananews.af/qatar-reaffirms-commitment-to-supporting-dialogue-and-engagement-on-afghanistan/',
@@ -173,10 +187,10 @@ const SRC={
   civ:'https://jpt.spe.org/qatar-petroleum-acquire-two-exploration-blocks-cote-divoire'
 };
 const TIERS={
-  1:{pts:20,rule:'Qatar mediates or leads direct state engagement there, and MOFA has named education there in 2025 or 2026'},
-  2:{pts:14,rule:'Named in MOFA crisis statements in 2026, or a country where QatarEnergy holds, has announced or has entered an investment'},
-  3:{pts:8,rule:'QFFD priority geography (least developed, fragile or refugee-hosting) that is on neither the MOFA nor the QatarEnergy list'},
-  4:{pts:3,rule:'Middle-income country with no Qatari crisis framing or QatarEnergy investment'},
+  1:{pts:15,rule:'Qatar mediates or leads direct state engagement there, and MOFA has named education there in 2025 or 2026'},
+  2:{pts:10,rule:'Named in MOFA crisis statements in 2026, or a country where QatarEnergy holds, has announced or has entered an investment'},
+  3:{pts:6,rule:'QFFD priority geography (least developed, fragile or refugee-hosting) that is on neither the MOFA nor the QatarEnergy list'},
+  4:{pts:2,rule:'Middle-income country with no Qatari crisis framing or QatarEnergy investment'},
   5:{pts:0,rule:'High-income country with no Qatari crisis framing or QatarEnergy investment'}
 };
 const GROUPS=[
@@ -234,23 +248,40 @@ const EVIDENCE=[
   {id:'b5',pts:2,t:'A signing moment fits in the next 6 months',d:'Doha Forum, UNGA, a donor conference, a ministerial visit'}
 ];
 const EV_CAP=10;
+/* Blocks scored out of their max. Items are checks (Yes, Partly, No, N/A) or numbers. N/A lines leave the block and the block rescales over the lines that apply. */
 const BLOCKS=[
   {id:'C',name:'QFFD fit',max:15,items:[
-    {id:'c1',pts:4,t:'Government counterpart',y:'Ministry MoU or letter signed',p:'Ministry engaged in talks'},
-    {id:'c2',pts:3,t:'EAA role',y:'EAA implements or manages the funds',p:'EAA co-implements with another body'},
-    {id:'c3',pts:4,t:'Partner already funded by QFFD',y:'Active QFFD agreement with the partner',p:'Past QFFD agreement only'},
-    {id:'c4',pts:4,t:'No overlap with QFFD’s own programmes',y:'No similar Qatar Scholarships offer for this group',p:'Overlap for part of the cohort',n:'The same offer already exists'}]},
-  {id:'D',name:'Need',max:15,items:[
-    {id:'d1',pts:5,t:'Higher education access for this group',y:'Universities closed or destroyed, or the group barred (UN or ministry data)',p:'Severely disrupted'},
-    {id:'d2',pts:5,t:'Refugees, displaced, evacuees or under occupation',y:'75% or more of places',p:'25% to 74% of places'},
-    {id:'d3',pts:3,t:'Women and girls',y:'50% or more of places reserved',p:'30% to 49% reserved'},
-    {id:'d4',pts:2,t:'Inclusion',y:'Places reserved for students with disabilities or orphans',p:'Eligible, with no reserved places'}]},
+    {id:'c1',k:'check',pts:4,t:'Government counterpart',y:'Ministry MoU or letter signed',p:'Ministry engaged in talks'},
+    {id:'c2',k:'check',pts:3,t:'EAA role',y:'EAA implements or manages the funds',p:'EAA co-implements with another body'},
+    {id:'c3',k:'check',pts:4,t:'Partner already funded by QFFD',y:'Active QFFD agreement with the partner',p:'Past QFFD agreement only'},
+    {id:'c4',k:'check',pts:4,t:'No overlap with QFFD’s own programmes',y:'No similar Qatar Scholarships offer for this group',p:'Overlap for part of the cohort',n:'The same offer already exists'}]},
+  {id:'D',name:'Need and labour market',max:15,items:[
+    {id:'d1',k:'check',pts:5,t:'Access gap',y:'Higher education or TVET is closed, destroyed or out of reach for this group (UN, ministry or partner data)',p:'Available but disrupted, or unaffordable for most of the group'},
+    {id:'d2',k:'check',pts:5,t:'Demand for qualified labour',y:'Documented shortage of qualified workers in the programme’s fields (labour-market study, ministry priority list or employer request)',p:'Evidence of sector growth, without a study'},
+    {id:'d3',k:'check',pts:5,t:'Vulnerability of beneficiaries',y:'75% or more are refugees, displaced, evacuees, under occupation or from low-income households',p:'25% to 74% of them'}]},
+  {id:'E',name:'Numbers and co-funding',max:25,items:[
+    {id:'share',k:'num',pts:12,t:'Partner share of total cost'},
+    {id:'cost',k:'num',pts:6,t:'Cost per completing graduate'},
+    {id:'stu',k:'num',pts:4,t:'Students reached'},
+    {id:'comp',k:'num',pts:3,t:'Partner completion rate',na:true}]},
+  {id:'G',name:'Employment potential',max:10,items:[
+    {id:'emp',k:'num',pts:6,t:'Partner’s graduate employment rate',na:true},
+    {id:'g2',k:'check',pts:2,t:'Employer links',y:'Signed internship or job-placement agreements with employers',p:'Informal links or career fairs'},
+    {id:'g3',k:'check',pts:2,t:'Graduate tracking',y:'Partner tracks graduates’ employment at 6 and 12 months',p:'Tracks once, or informally'}]},
   {id:'F',name:'Delivery',max:10,items:[
-    {id:'f1',pts:3,t:'Al Fakhoora track record with this partner',y:'A completed project',p:'An ongoing project only'},
-    {id:'f2',pts:3,t:'Enrolment speed',y:'Students enrol within one academic year of signing',p:'Within two academic years'},
-    {id:'f3',pts:2,t:'Wraparound support',y:'Three or more of: mentoring, career services, alumni network, psychosocial support',p:'One or two of them'},
-    {id:'f4',pts:2,t:'Exit plan',y:'A named body takes over costs, in writing',p:'Takeover under discussion'}]}
+    {id:'f1',k:'check',pts:3,t:'Al Fakhoora track record with this partner',y:'A completed project',p:'An ongoing project only'},
+    {id:'f2',k:'check',pts:3,t:'Enrolment speed',y:'Students enrol within one academic year of signing',p:'Within two academic years'},
+    {id:'f3',k:'check',pts:2,t:'Wraparound support',y:'Three or more of: mentoring, career services, alumni network, psychosocial support',p:'One or two of them'},
+    {id:'f4',k:'check',pts:2,t:'Exit plan',y:'A named body takes over costs, in writing',p:'Takeover under discussion'}]}
 ];
+const BONUS=[
+  {id:'k1',pts:4,note:true,t:'Interest from Her Highness Sheikha Moza bint Nasser or the Amiri Diwan',d:'A request, visit or stated interest'},
+  {id:'k2',pts:3,note:true,t:'Link to HE Sheikha Al Mayassa bint Hamad’s initiatives',d:'Qatar Museums, the creative sector or a related programme'},
+  {id:'k3',pts:3,note:true,t:'A new edge for Al Fakhoora',d:'A field we have not funded before, such as the creative economy, digital and AI, or green skills'},
+  {id:'k4',pts:2,t:'Women and girls',d:'50% or more of places reserved'},
+  {id:'k5',pts:2,t:'Inclusion',d:'Places reserved for students with disabilities or orphans'}
+];
+const BONUS_CAP=10;
 const RISKS=[
   {id:'r1',pts:6,t:'Access to the delivery site is blocked today',d:'Crossings closed, visas refused, campus unreachable'},
   {id:'r2',pts:5,t:'This partner had an EAA project suspended or terminated',d:'Any time in the past'},
@@ -260,58 +291,126 @@ const RISKS=[
 ];
 const RISK_CAP=15;
 const MODALITIES=['TVET diploma or certificate','Bachelor’s (BA or BSc)','Mix of bachelor’s and TVET','Bachelor’s in the region','Bachelor’s in Qatar','Bachelor’s abroad','Master’s abroad','Online or hybrid degree'];
-const BAND_COST=[[0.5,10],[0.75,8],[1.0,6],[1.25,4],[1.5,2]];
-const BAND_LEV=[[3,10],[2,8],[1,6],[0.5,4]];
-const BAND_STU=[[2000,6],[1000,5],[500,4],[250,3],[100,2],[25,1]];
-const BAND_COMP=[[90,4],[80,3],[70,2],[60,1]];
+/* Bands: [threshold, points]. UP = at or above; DOWN = at or below. */
+const BAND={
+  share:{dir:'up',b:[[80,12],[65,10],[50,8],[40,5],[30,3],[15,2],[0.01,1]],txt:'Partner share = funding from others ÷ (EAA + others). 80% or more: 12 · 65%: 10 · 50%: 8 · 40%: 5 · 30%: 3 · 15%: 2 · above 0: 1 · none: 0. Points climb fastest past 50%.'},
+  cost:{dir:'down',b:[[0.5,6],[0.75,5],[1.0,4],[1.25,2],[1.5,1]],txt:'EAA contribution ÷ (students × completion rate), against the benchmark for the modality. At or below 50% of benchmark: 6 · 75%: 5 · 100%: 4 · 125%: 2 · 150%: 1 · above: 0. With completion N/A, it uses cost per student.'},
+  stu:{dir:'up',b:[[1000,4],[500,3],[200,2],[50,1]],txt:'1,000 or more: 4 · 500: 3 · 200: 2 · 50: 1 · fewer: 0'},
+  comp:{dir:'up',b:[[90,3],[80,2],[70,1]],txt:'Partner’s last cohort. 90% or more: 3 · 80%: 2 · 70%: 1 · lower: 0. N/A for a partner with no past cohort.'},
+  emp:{dir:'up',b:[[80,6],[70,5],[60,4],[50,3],[40,2],[25,1]],txt:'Share of the partner’s past graduates employed or self-employed within 12 months. 80% or more: 6 · 70%: 5 · 60%: 4 · 50%: 3 · 40%: 2 · 25%: 1 · lower: 0. N/A with no past cohorts.'}
+};
 
 /* ---------- State ---------- */
-const KEY='af-compass-v3';
-const blankOpp=(id,name,extra={})=>({id,name,country:'',gates:{},ev:{},ans:{},risk:{},num:{eaa:'',other:'',students:'',comp:'',modality:'',bench:''},prep:'',date:'',rec:'',...extra});
+const KEY='af-compass-v4';
+const blankNum=()=>({eaa:'',other:'',students:'',comp:'',compNA:false,emp:'',empNA:false,modality:'',bench:''});
+const blankOpp=(id,name,extra={})=>({id,name,country:'',gates:{},ev:{},ans:{},bonus:{},risk:{},num:blankNum(),prep:'',date:'',rec:'',...extra});
 let S={opps:[],sel:null,bench:{},adding:true};
-try{const v=JSON.parse(localStorage.getItem(KEY)||'null');if(v&&Array.isArray(v.opps))S={...S,...v,adding:!v.opps.length}}catch(e){}
-try{const old=JSON.parse(localStorage.getItem('af-compass-v2')||'null');if(old&&old.bench&&!Object.keys(S.bench).length)S.bench=old.bench;localStorage.removeItem('af-compass-v2');localStorage.removeItem('af-compass-v1')}catch(e){}
+function migrate(o){const n={...blankOpp(o.id,o.name),...o};n.num={...blankNum(),...(o.num||{})};n.bonus=o.bonus||{};
+  if(!o.bonus){const a=o.ans||{};n.ans={...a};if(a.d2){n.ans.d3=a.d2;delete n.ans.d2}if(a.d3==='yes')n.bonus.k4={on:true};if(a.d4==='yes')n.bonus.k5={on:true};if(!a.d2)delete n.ans.d3;delete n.ans.d4}
+  return n}
+try{const v=JSON.parse(localStorage.getItem(KEY)||'null');if(v&&Array.isArray(v.opps))S={...S,...v,adding:!v.opps.length};
+  else{const v3=JSON.parse(localStorage.getItem('af-compass-v3')||'null');if(v3&&Array.isArray(v3.opps)){S={...S,opps:v3.opps.map(migrate),sel:v3.sel,bench:v3.bench||{},adding:!v3.opps.length}}}}catch(e){}
+try{['af-compass-v1','af-compass-v2','af-compass-v3'].forEach(k=>localStorage.removeItem(k))}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify({opps:S.opps,sel:S.sel,bench:S.bench}))}catch(e){}};
 const cur=()=>S.opps.find(o=>o.id===S.sel)||null;
 
 /* ---------- Arithmetic ---------- */
-const num=v=>{const n=parseFloat(String(v).replace(/,/g,''));return isFinite(n)?n:null};
+const num=v=>{if(v===''||v==null)return null;const n=parseFloat(String(v).replace(/,/g,''));return isFinite(n)?n:null};
 const ansPts=(pts,a)=>a==='yes'?pts:a==='partly'?pts/2:a==='no'?0:null;
-const bandDown=(x,b)=>{for(const[t,p]of b)if(x<=t)return p;return 0};
-const bandUp=(x,b)=>{for(const[t,p]of b)if(x>=t)return p;return 0};
-function benchFor(o){return num(o.num.bench)??num(S.bench[o.num.modality])}
-function numbers(o){
-  const n=o.num,eaa=num(n.eaa),oth=num(n.other),stu=num(n.students),comp=num(n.comp),b=benchFor(o);
-  const r={};
-  if(eaa!=null&&stu&&comp&&b){const c=eaa/(stu*comp/100);r.cost={pts:bandDown(c/b,BAND_COST),c,ratio:c/b,b}}else r.cost={pts:null,b};
-  if(eaa!=null&&oth!=null){const l=eaa===0?Infinity:oth/eaa;r.lev={pts:eaa===0?(oth>0?10:0):(l>0?Math.max(bandUp(l,BAND_LEV),2):0),l}}else r.lev={pts:null};
-  r.stu=stu!=null?{pts:bandUp(stu,BAND_STU),v:stu}:{pts:null};
-  r.comp=comp!=null?{pts:bandUp(comp,BAND_COMP),v:comp}:{pts:null};
-  return r;
+const bandPts=(k,x)=>{const B=BAND[k];for(const[t,p]of B.b){if(B.dir==='up'?x>=t:x<=t)return p}return 0};
+function nextBand(k,x){const B=BAND[k],c=bandPts(k,x);const better=B.b.filter(([t,p])=>p>c);if(!better.length)return null;
+  return B.dir==='up'?better.reduce((a,b)=>b[0]<a[0]?b:a):better.reduce((a,b)=>b[0]>a[0]?b:a)}
+const benchFor=o=>num(o.num.bench)??num(S.bench[o.num.modality]);
+const fmt=n=>n==null?'':Math.round(n).toLocaleString('en-US');
+const usd=n=>'$'+fmt(n);
+const fp=p=>p==null?'–':(Math.abs(p-Math.round(p))<0.05?String(Math.round(p)):p.toFixed(1));
+const lf=s=>s.charAt(0).toLowerCase()+s.slice(1);
+const bare=s=>s.replace(/\s*\([^)]*\)/g,'');
+const ptsW=n=>`${fp(n)} point${Math.abs(n-1)<0.05?'':'s'}`;
+/* Each numeric item returns {pts, na, answered, how, why, up} */
+function numItem(o,id){
+  const n=o.num,eaa=num(n.eaa),oth=num(n.other),stu=num(n.students),comp=num(n.comp),b=benchFor(o),emp=num(n.emp);
+  if(id==='share'){if(eaa==null||oth==null||eaa+oth<=0)return {pts:null,how:'Needs the EAA contribution and funding from others.'};
+    const s=oth/(eaa+oth)*100,p=bandPts('share',s),nb=nextBand('share',s);
+    return {pts:p,v:s,how:`${usd(oth)} ÷ ${usd(eaa+oth)} = ${s.toFixed(0)}% from partners`,
+      why:s>=50?`Partners fund ${s.toFixed(0)}% of the programme (${usd(oth)} of ${usd(eaa+oth)})`:null,
+      up:nb&&eaa>0?{gain:nb[1]-p,text:`Raise the partner share from ${s.toFixed(0)}% to ${nb[0]}%: about ${usd(nb[0]*eaa/(100-nb[0])-oth)} more from partners`}:null}}
+  if(id==='cost'){const cf=n.compNA?1:(comp!=null?comp/100:null);
+    if(eaa==null||!stu||cf==null||!cf||!b)return {pts:null,how:'Needs the EAA contribution, students, completion rate (or N/A) and a benchmark.'};
+    const c=eaa/(stu*cf),r=c/b,p=bandPts('cost',r),nb=nextBand('cost',r);
+    return {pts:p,v:c,how:`${usd(eaa)} ÷ (${fmt(stu)}${n.compNA?'':` × ${comp}%`}) = ${usd(c)} per ${n.compNA?'student':'graduate'}, ${(r*100).toFixed(0)}% of the ${usd(b)} benchmark`,
+      why:r<=1?`Cost per ${n.compNA?'student':'graduate'} of ${usd(c)} is ${(r*100).toFixed(0)}% of the benchmark`:null,
+      up:nb?{gain:nb[1]-p,text:`Bring EAA cost per ${n.compNA?'student':'graduate'} from ${usd(c)} to ${usd(nb[0]*b)} or less`}:null}}
+  if(id==='stu'){if(stu==null)return {pts:null,how:'Needs the number of students.'};const p=bandPts('stu',stu),nb=nextBand('stu',stu);
+    return {pts:p,v:stu,how:`${fmt(stu)} students`,why:stu>=500?`Reaches ${fmt(stu)} students`:null,up:nb?{gain:nb[1]-p,text:`Grow the cohort from ${fmt(stu)} to ${fmt(nb[0])} students`}:null}}
+  if(id==='comp'){if(n.compNA)return {na:true,how:'Not applicable: no past cohort.'};if(comp==null)return {pts:null,how:'Needs the partner’s completion rate, or N/A.'};
+    const p=bandPts('comp',comp),nb=nextBand('comp',comp);return {pts:p,v:comp,how:`${comp}% in the partner’s last cohort`,why:comp>=80?`Partner’s last cohort completed at ${comp}%`:null,up:nb?{gain:nb[1]-p,text:`Agree a completion target of ${nb[0]}% with retention support`}:null}}
+  if(id==='emp'){if(n.empNA)return {na:true,how:'Not applicable: no past cohorts.'};if(emp==null)return {pts:null,how:'Needs the partner’s graduate employment rate, or N/A.'};
+    const p=bandPts('emp',emp),nb=nextBand('emp',emp);return {pts:p,v:emp,how:`${emp}% of past graduates employed within 12 months`,why:emp>=60?`${emp}% of the partner’s past graduates found work within 12 months`:null,up:nb?{gain:nb[1]-p,text:`Add a placement component to lift graduate employment from ${emp}% toward ${nb[0]}%`}:null}}
+}
+function itemResult(o,i){
+  if(i.k==='num'){const r=numItem(o,i.id);return {...r,answered:r.na||r.pts!=null}}
+  const a=o.ans[i.id];if(a==='na')return {na:true,answered:true};
+  const p=ansPts(i.pts,a);return {pts:p,answered:p!=null,a}
 }
 function compute(o){
-  const out={blocks:{},assessed:0};
+  const out={blocks:{},assessed:0,items:{}};
   const t=CONTEXTS.find(c=>c.id===o.country);
-  out.blocks.A={pts:t?TIERS[t.tier].pts:0,max:20};if(t)out.assessed+=20;
+  out.blocks.A={pts:t?TIERS[t.tier].pts:0,max:15};if(t)out.assessed+=15;
   let e=0;EVIDENCE.forEach(x=>{const v=o.ev[x.id];if(v&&v.on&&String(v.src||'').trim())e+=x.pts});
   out.blocks.B={pts:Math.min(EV_CAP,e),max:EV_CAP};out.assessed+=EV_CAP;
-  BLOCKS.forEach(b=>{let p=0;b.items.forEach(i=>{const v=ansPts(i.pts,o.ans[i.id]);if(v!=null){p+=v;out.assessed+=i.pts}});out.blocks[b.id]={pts:p,max:b.max}});
-  const n=numbers(o);let ep=0;[['cost',10],['lev',10],['stu',6],['comp',4]].forEach(([k,m])=>{if(n[k].pts!=null){ep+=n[k].pts;out.assessed+=m}});
-  out.blocks.E={pts:ep,max:30};out.num=n;
+  BLOCKS.forEach(b=>{let earned=0,app=0;b.items.forEach(i=>{const r=itemResult(o,i);out.items[i.id]=r;if(r.answered)out.assessed+=i.pts;if(r.na)return;app+=i.pts;earned+=r.pts||0});
+    const scale=app>0?b.max/app:0;b.items.forEach(i=>out.items[i.id].scale=scale);
+    out.blocks[b.id]={pts:app>0?earned*scale:b.max,max:b.max,allNA:app===0}});
+  let k=0;BONUS.forEach(x=>{const v=o.bonus[x.id];if(v&&v.on&&(!x.note||String(v.note||'').trim()))k+=x.pts});out.blocks.K={pts:Math.min(BONUS_CAP,k),max:BONUS_CAP};
   let r=0;RISKS.forEach(x=>{if(o.risk[x.id])r+=x.pts});out.blocks.R={pts:-Math.min(RISK_CAP,r),max:RISK_CAP};
   const sum=Object.values(out.blocks).reduce((s,v)=>s+v.pts,0);
-  out.total=Math.max(0,Math.round(sum*2)/2);
-  out.complete=Math.round(out.assessed);
+  out.total=Math.min(100,Math.max(0,Math.round(sum*2)/2));
+  out.complete=Math.min(100,Math.round(out.assessed));
   const g=GATES.map(x=>o.gates[x.id]);out.gateFail=g.includes('no');out.gatePending=g.some(x=>x!=='yes');
   if(out.gateFail)out.total=0;
   out.band=out.gateFail?['Not eligible','p-stop']:out.total>=70?['Pursue','p-pursue']:out.total>=55?['Shape','p-shape']:out.total>=40?['Watch','p-watch']:['Decline','p-decline'];
   out.final=!out.gateFail&&!out.gatePending&&out.complete>=100;
   return out;
 }
-const fmt=n=>n==null?'':Math.round(n).toLocaleString('en-US');
-const fp=p=>p==null?'–':(Number.isInteger(p)?String(p):p.toFixed(1));
+/* ---------- The rationale, written from the answers ---------- */
+function rationale(o,r){
+  const t=CONTEXTS.find(c=>c.id===o.country),T=r.total,why=[],todo=[],cond=[];
+  // gates
+  GATES.forEach(g=>{const v=o.gates[g.id];if(v==='no')cond.push({g:99,text:`Gate failed: ${lf(g.t)}`});else if(v!=='yes')cond.push({g:98,text:`Confirm the gate: ${lf(g.t)}`})});
+  // why
+  if(t&&t.tier<=2){const grp=GROUPS.find(x=>x.id===t.g);why.push({w:r.blocks.A.pts,text:`${t.name} is a Tier ${t.tier} country (${grp?grp.label.split('· ')[1]:''})`})}
+  EVIDENCE.forEach(x=>{const v=o.ev[x.id];if(v&&v.on&&String(v.src||'').trim())why.push({w:x.pts,text:`${x.t}${v.date?` (${v.date})`:''}`})});
+  BLOCKS.forEach(b=>b.items.forEach(i=>{const ir=r.items[i.id];if(ir.na)return;
+    if(i.k==='check'){if(ir.a==='yes')why.push({w:i.pts*ir.scale,text:`${i.t}: ${lf(bare(i.y))}`});
+      const gap=(i.pts-(ir.pts??0))*ir.scale;if(gap>0.05){if(ir.a==='partly'||ir.a==='no')todo.push({g:gap,text:`${i.t}: needs ${lf(bare(i.y))}`});}}
+    else{if(ir.why)why.push({w:ir.pts*ir.scale,text:ir.why});if(ir.up&&ir.up.gain>0)todo.push({g:ir.up.gain*ir.scale,text:ir.up.text})}}));
+  BONUS.forEach(x=>{const v=o.bonus[x.id];if(v&&v.on&&(!x.note||String(v.note||'').trim()))why.push({w:x.pts,text:`Bonus: ${lf(x.t)}${v.note?`: ${v.note}`:''}`})});
+  // evidence gap
+  if(r.blocks.B.pts<EV_CAP){const un=EVIDENCE.filter(x=>!(o.ev[x.id]&&o.ev[x.id].on&&String(o.ev[x.id].src||'').trim())).sort((a,b)=>b.pts-a.pts)[0];
+    if(un)todo.push({g:Math.min(un.pts,EV_CAP-r.blocks.B.pts),text:`Document a ${lf(un.t)}${un.id==='b1'?' from MOFA, QFFD or the ministry':''}`})}
+  RISKS.forEach(x=>{if(o.risk[x.id])todo.push({g:x.pts,text:`Mitigate the risk: ${lf(x.t)}`})});
+  // unanswered
+  if(!t)todo.push({g:15,text:'Set the beneficiaries’ origin to score the country block'});
+  const open=BLOCKS.flatMap(b=>b.items.filter(i=>!r.items[i.id].answered));
+  if(open.length)cond.push({g:97,text:`Answer the ${open.length} open line${open.length>1?'s':''}: ${open.slice(0,3).map(i=>lf(i.t)).join(', ')}${open.length>3?'…':''}`});
+  why.sort((a,b)=>b.w-a.w);todo.sort((a,b)=>b.g-a.g);
+  const gainSum=todo.reduce((s,x)=>s+x.g,0);
+  let verdict;
+  if(r.gateFail)verdict=`Stop. A gate failed, so this opportunity cannot proceed whatever it scores.`;
+  else if(T>=70)verdict=`Pursue. It scores ${fp(T)}%, ${T-70<0.05?'right on':ptsW(T-70)+' above'} the 70% bar for pursuing.${r.final?' All gates pass and every line is assessed.':' Close the open items before signing.'}`;
+  else if(T>=55)verdict=`Shape before pitching. It scores ${fp(T)}%, ${ptsW(70-T)} short of Pursue. The changes listed could add up to ${ptsW(Math.min(gainSum,100-T))}.`;
+  else if(T>=40)verdict=`Watch. It scores ${fp(T)}%, ${ptsW(55-T)} short of Shape and ${ptsW(70-T)} short of Pursue. Revisit when MOFA, QFFD or a co-funder moves.`;
+  else verdict=`Decline or refer. It scores ${fp(T)}%, ${ptsW(40-T)} below Watch. Consider referring it to another EAA programme.`;
+  const shapeTitle=r.gateFail?'Why it stops':T>=70?'Conditions before signing':'What to shape';
+  const shape=[...cond.sort((a,b)=>b.g-a.g).map(x=>({text:x.text,g:null})),...todo.map(x=>({text:x.text,g:x.g}))];
+  return {verdict,why:why.map(x=>x.text),shape,shapeTitle};
+}
+
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const BLOCK_NAMES={A:'Country priority',B:'Verified evidence',C:'QFFD fit',D:'Need',E:'The numbers',F:'Delivery',R:'Risk'};
+const BLOCK_NAMES={A:'Country priority',B:'Verified evidence',C:'QFFD fit',D:'Need and labour market',E:'Numbers and co-funding',G:'Employment potential',F:'Delivery',K:'Bonus',R:'Risk'};
+const ORDER=['A','B','C','D','E','G','F','K','R'];
+const pctOf=b=>b.max?Math.round(b.pts/b.max*100):0;
 
 /* ---------- Rendering ---------- */
 function countryOptions(sel){
@@ -321,7 +420,7 @@ function renderList(){
   const el=document.getElementById('opplist');
   if(!S.opps.length){el.innerHTML='<div class="empty">No opportunities yet.</div>';return}
   el.innerHTML=S.opps.map(o=>{const r=compute(o);
-    return `<button type="button" class="opp" data-sel="${o.id}" aria-current="${o.id===S.sel&&!S.adding}"><span class="nm">${esc(o.name||'Untitled')}</span><span class="sc">${r.gateFail?'✕':fp(r.total)}<span style="color:#9aa0ab">·${r.complete}%</span></span></button>`}).join('');
+    return `<button type="button" class="opp" data-sel="${o.id}" aria-current="${o.id===S.sel&&!S.adding}"><span class="nm">${esc(o.name||'Untitled')}</span><span class="sc">${r.gateFail?'✕':fp(r.total)+'%'}</span></button>`}).join('');
 }
 function renderNew(){
   document.getElementById('sheet').innerHTML=`<div class="welcome">
@@ -336,11 +435,14 @@ function renderNew(){
   document.getElementById('new-name').focus();
 }
 function seg(name,cur,opts){return `<div class="seg" role="radiogroup">${opts.map(([v,l])=>`<input type="radio" name="${name}" id="${name}-${v}" value="${v}" ${cur===v?'checked':''}><label for="${name}-${v}">${l}</label>`).join('')}</div>`}
+function checkItem(o,i){return `<fieldset class="q"><legend>${i.t}</legend><p class="def"><b>Yes:</b> ${i.y}. <b>Partly:</b> ${i.p}.${i.n?` <b>No:</b> ${i.n}.`:''}</p>
+  <div class="ctl">${seg(`${o.id}-${i.id}`,o.ans[i.id],[['yes','Yes'],['partly','Partly'],['no','No'],['na','N/A']])}<span class="pts" id="pt-${i.id}"></span></div></fieldset>`}
+function numLine(id,title){return `<div class="calc"><span>${title}</span><span class="how" id="how-${id}"></span><span class="pts" id="pt-${id}"></span></div>`}
 function renderSheet(){
   if(S.adding||!cur()){S.adding=true;renderList();renderNew();return}
-  const o=cur(),id=o.id;
-  const h=[];
+  const o=cur(),id=o.id,n=o.num,h=[];
   h.push(`<div class="scorebar" id="scorebar"></div>`);
+  h.push(`<div class="card rat" id="rat"></div>`);
   h.push(`<div class="card"><div class="grid2">
     <label class="f">Opportunity name<input type="text" id="${id}-name" data-f="name" value="${esc(o.name)}"></label>
     <label class="f">Prepared by<input type="text" id="${id}-prep" data-f="prep" value="${esc(o.prep)}"></label>
@@ -357,189 +459,181 @@ function renderSheet(){
      <label class="txt" for="${id}-${x.id}-on">${x.t}<small>${x.d}</small></label><span class="pts">+${x.pts}</span>
      <div class="src"><input type="date" id="${id}-${x.id}-date" data-ev="${x.id}" data-k="date" value="${esc(v.date)}" aria-label="Date of evidence"><input type="text" id="${id}-${x.id}-src" data-ev="${x.id}" data-k="src" value="${esc(v.src)}" placeholder="Source: link, letter reference or meeting note" aria-label="Source"></div>
      <span class="warn" id="${id}-${x.id}-warn" style="grid-column:2 / span 2"></span></div>`}).join('')}</div>`);
-  BLOCKS.forEach(b=>{
-    h.push(`<div class="card"><h2>${b.id} · ${b.name} <span class="of" id="of-${b.id}"></span></h2><p class="lead">Yes earns full points, Partly earns half, No earns none.</p>
-    ${b.items.map(i=>`<fieldset class="q"><legend>${i.t}</legend><p class="def"><b>Yes:</b> ${i.y}. <b>Partly:</b> ${i.p}.${i.n?` <b>No:</b> ${i.n}.`:''}</p>
-     <div class="ctl">${seg(`${id}-${i.id}`,o.ans[i.id],[['yes','Yes'],['partly','Partly'],['no','No']])}<span class="pts" id="pt-${i.id}"></span></div></fieldset>`).join('')}</div>`);
-    if(b.id==='D')h.push(numbersCard(o));
-  });
+  const head=b=>`<h2>${b.id} · ${b.name} <span class="of" id="of-${b.id}"></span></h2>`;
+  const C=BLOCKS[0],D=BLOCKS[1],E=BLOCKS[2],G=BLOCKS[3],F=BLOCKS[4];
+  const naNote='<p class="lead">Yes earns full points, Partly half, No none. N/A takes the line out, and the block rescales over the lines that apply.</p>';
+  h.push(`<div class="card">${head(C)}${naNote}${C.items.map(i=>checkItem(o,i)).join('')}</div>`);
+  h.push(`<div class="card">${head(D)}${naNote}${D.items.map(i=>checkItem(o,i)).join('')}</div>`);
+  h.push(`<div class="card">${head(E)}<p class="lead">Fixed bands turn the figures into points. Use US dollars over the whole programme. The partner share carries the most weight, and its points climb fastest past 50%.</p>
+   <div class="grid2">
+    <label class="f">EAA contribution (USD)<input type="number" min="0" id="${id}-eaa" data-n="eaa" value="${esc(n.eaa)}"></label>
+    <label class="f">Funding from partners and others (USD)<input type="number" min="0" id="${id}-other" data-n="other" value="${esc(n.other)}"></label>
+    <label class="f">Students funded<input type="number" min="0" id="${id}-students" data-n="students" value="${esc(n.students)}"></label>
+    <label class="f">Partner’s completion rate, last cohort (%)<input type="number" min="0" max="100" id="${id}-comp" data-n="comp" value="${esc(n.comp)}" ${n.compNA?'disabled':''}><span class="chk"><input type="checkbox" id="${id}-compNA" data-n="compNA" ${n.compNA?'checked':''}><label for="${id}-compNA">N/A: no past cohort</label></span></label>
+    <label class="f">Modality<select id="${id}-modality" data-n="modality"><option value="">Choose</option>${MODALITIES.map(m=>`<option ${n.modality===m?'selected':''}>${m}</option>`).join('')}</select></label>
+    <label class="f">Benchmark cost per graduate (USD)<input type="number" min="0" id="${id}-bench" data-n="bench" value="${esc(n.bench)}"></label>
+   </div>${numLine('share','Partner share of total cost')}${numLine('cost','Cost per completing graduate')}${numLine('stu','Students reached')}${numLine('comp','Partner completion rate')}</div>`);
+  h.push(`<div class="card">${head(G)}<p class="lead">Judged on the partner’s record with past cohorts, not on promises.</p>
+   <div class="grid2"><label class="f">Past graduates employed or self-employed within 12 months (%)<input type="number" min="0" max="100" id="${id}-emp" data-n="emp" value="${esc(n.emp)}" ${n.empNA?'disabled':''}><span class="chk"><input type="checkbox" id="${id}-empNA" data-n="empNA" ${n.empNA?'checked':''}><label for="${id}-empNA">N/A: no past cohorts</label></span></label></div>
+   ${numLine('emp','Graduate employment rate')}${G.items.filter(i=>i.k==='check').map(i=>checkItem(o,i)).join('')}</div>`);
+  h.push(`<div class="card">${head(F)}${naNote}${F.items.map(i=>checkItem(o,i)).join('')}</div>`);
+  h.push(`<div class="card"><h2>Bonus points <span class="of" id="of-K"></span></h2><p class="lead">Added on top, up to +${BONUS_CAP}. The final score never passes 100%. The first three need a note saying what the tie or edge is.</p>
+   ${BONUS.map(x=>{const v=o.bonus[x.id]||{};return `<div class="ev"><input type="checkbox" id="${id}-${x.id}-on" data-bonus="${x.id}" data-k="on" ${v.on?'checked':''}>
+    <label class="txt" for="${id}-${x.id}-on">${x.t}<small>${x.d}</small></label><span class="pts">+${x.pts}</span>
+    ${x.note?`<div class="src one"><input type="text" id="${id}-${x.id}-note" data-bonus="${x.id}" data-k="note" value="${esc(v.note)}" aria-label="Note"></div><span class="warn" id="${id}-${x.id}-warn" style="grid-column:2 / span 2"></span>`:''}</div>`}).join('')}</div>`);
   h.push(`<div class="card"><h2>R · Risk deductions <span class="of" id="of-R"></span></h2><p class="lead">Tick only what is true today. Deductions cap at ${RISK_CAP} points.</p>
    ${RISKS.map(x=>`<div class="ev"><input type="checkbox" id="${id}-${x.id}" data-risk="${x.id}" ${o.risk[x.id]?'checked':''}><label class="txt" for="${id}-${x.id}">${x.t}<small>${x.d}</small></label><span class="pts">−${x.pts}</span></div>`).join('')}</div>`);
-  h.push(`<div class="card export"><h2>Justification and export</h2>
-   <p class="lead">The one-page PDF carries the score, the reasons, and a section each for finance, legal and management. Your recommendation leads the page; with none, the page writes its summary from the scores.</p>
-   <label class="f">Recommendation<textarea id="${id}-rec" data-f="rec">${esc(o.rec)}</textarea></label>
+  h.push(`<div class="card export"><h2>Recommendation and export</h2>
+   <p class="lead">The one-page PDF leads with the verdict and the reasons above, then a section each for finance, legal and compliance, and strategy. Add your own recommendation to sit beside the verdict.</p>
+   <label class="f">Your recommendation<textarea id="${id}-rec" data-f="rec">${esc(o.rec)}</textarea></label>
    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn dark" type="button" id="pdf">Export one-page PDF</button><button class="btn" type="button" id="copy">Copy scorecard as text</button><button class="btn" type="button" id="del">Remove this opportunity</button></div>
    <span class="note" id="pdfnote"></span></div>`);
   document.getElementById('sheet').innerHTML=h.join('');
   refresh();
 }
-function numbersCard(o){const id=o.id,n=o.num;
-  return `<div class="card"><h2>E · The numbers <span class="of" id="of-E"></span></h2>
-  <p class="lead">Points come from fixed bands. Use figures from the proposal and the finance workbook, in US dollars, over the whole programme.</p>
-  <div class="grid2">
-   <label class="f">EAA contribution (USD)<input type="number" min="0" id="${id}-eaa" data-n="eaa" value="${esc(n.eaa)}"></label>
-   <label class="f">Funding from others (USD)<input type="number" min="0" id="${id}-other" data-n="other" value="${esc(n.other)}"></label>
-   <label class="f">Students funded<input type="number" min="0" id="${id}-students" data-n="students" value="${esc(n.students)}"></label>
-   <label class="f">Partner’s completion rate, last cohort (%)<input type="number" min="0" max="100" id="${id}-comp" data-n="comp" value="${esc(n.comp)}"></label>
-   <label class="f">Modality<select id="${id}-modality" data-n="modality"><option value="">Choose</option>${MODALITIES.map(m=>`<option ${n.modality===m?'selected':''}>${m}</option>`).join('')}</select></label>
-   <label class="f">Benchmark cost per graduate (USD)<input type="number" min="0" id="${id}-bench" data-n="bench" value="${esc(n.bench)}"></label>
-  </div>
-  <div id="numcalc"></div></div>`}
 function refresh(){
   const o=cur();if(!o){renderList();return}
-  const r=compute(o),id=o.id;
-  const B=['A','B','C','D','E','F','R'],NM={A:'Country',B:'Evidence',C:'QFFD fit',D:'Need',E:'Numbers',F:'Delivery',R:'Risk'};
-  document.getElementById('scorebar').innerHTML=`<div class="big">${fp(r.total)}<small> / 100</small></div>
-   <div class="meta"><div class="pills"><span class="pill ${r.band[1]}">${r.band[0]}</span>${r.final?'':`<span class="pill p-prov">${r.gateFail?'Gate failed':'Provisional'}</span>`}<span class="complete">${r.complete} of 100 points assessed${r.gatePending&&!r.gateFail?' · gates not all checked':''}</span></div>
-   <div class="blocks">${B.map(k=>{const b=r.blocks[k],w=b.max?Math.abs(b.pts)/b.max*100:0;return `<div class="blk ${k==='R'?'neg':''}">${NM[k]}<b>${fp(b.pts)}${k==='R'?'':' / '+b.max}</b><i><span style="width:${w}%"></span></i></div>`}).join('')}</div></div>`;
-  B.forEach(k=>{const el=document.getElementById('of-'+k);if(el){const b=r.blocks[k];el.innerHTML=k==='R'?`<b>${fp(b.pts)}</b> of −${b.max} max`:`<b>${fp(b.pts)}</b> of ${b.max}`}});
+  const r=compute(o),id=o.id,ra=rationale(o,r);
+  const SH={A:'Country',B:'Evidence',C:'QFFD fit',D:'Need',E:'Numbers',G:'Employment',F:'Delivery',K:'Bonus',R:'Risk'};
+  document.getElementById('scorebar').innerHTML=`<div class="big">${fp(r.total)}<small>%</small></div>
+   <div class="meta"><div class="pills"><span class="pill ${r.band[1]}">${r.band[0]}</span>${r.final?'':`<span class="pill p-prov">${r.gateFail?'Gate failed':'Provisional'}</span>`}<span class="complete">${r.complete}% of the score assessed${r.gatePending&&!r.gateFail?' · gates not all checked':''}</span></div>
+   <div class="blocks">${ORDER.map(k=>{const b=r.blocks[k],adj=k==='K'||k==='R',w=b.max?Math.abs(b.pts)/b.max*100:0;
+     return `<div class="blk ${k==='R'?'neg':''}">${SH[k]}<b>${adj?(b.pts>0?'+':'')+fp(b.pts)+'%':pctOf(b)+'%'}</b><i><span style="width:${w}%"></span></i></div>`}).join('')}</div></div>`;
+  document.getElementById('rat').innerHTML=`<h2>The verdict and why</h2><p class="verdict">${esc(ra.verdict)}</p>
+   <div class="ratcols"><div><h3 class="ok">${r.band[0]==='Pursue'?'Why we should pursue':'What works in its favour'}</h3>${ra.why.length?`<ul>${ra.why.slice(0,6).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'<p class="note">Answer the checklist to build the case.</p>'}</div>
+   <div><h3 class="wn">${ra.shapeTitle}</h3>${ra.shape.length?`<ul>${ra.shape.slice(0,6).map(x=>`<li>${esc(x.text)}${x.g!=null?` <span class="gain">+${fp(x.g)}</span>`:''}</li>`).join('')}</ul>`:'<p class="note">Nothing left to shape.</p>'}</div></div>`;
+  ORDER.forEach(k=>{const el=document.getElementById('of-'+k);if(!el)return;const b=r.blocks[k];
+    el.innerHTML=k==='R'?`<b>${fp(b.pts)}</b> of −${b.max} max`:k==='K'?`<b>+${fp(b.pts)}</b> of +${b.max} max`:`<b>${pctOf(b)}%</b> · ${fp(b.pts)} of ${b.max} pts${b.allNA?' · all N/A':''}`});
   const t=CONTEXTS.find(c=>c.id===o.country);
-  document.getElementById('tierbox').innerHTML=t?`<b>Tier ${t.tier}: ${TIERS[t.tier].pts} points.</b><span>${TIERS[t.tier].rule}.</span><span>${t.qe?'<span class="tag qe">QatarEnergy</span>':''}${esc(t.basis)} ${t.src?`<a href="${t.src}" target="_blank" rel="noopener">Source</a>`:''}${t.src2?` · <a href="${t.src2}" target="_blank" rel="noopener">QatarEnergy source</a>`:''}</span>`:'<span>No context chosen yet: 0 of 20 points assessed.</span>';
-  EVIDENCE.forEach(x=>{const v=o.ev[x.id]||{},w=document.getElementById(`${id}-${x.id}-warn`);w.textContent=v.on&&!String(v.src||'').trim()?'Name the source, or this signal earns nothing.':''});
-  BLOCKS.forEach(b=>b.items.forEach(i=>{const el=document.getElementById('pt-'+i.id),p=ansPts(i.pts,o.ans[i.id]);el.textContent=p==null?`– / ${i.pts}`:`${fp(p)} / ${i.pts}`;el.className='pts'+(p==null?' none':'')}));
-  const n=r.num,b=benchFor(o),benchEl=document.getElementById(id+'-bench');
-  if(benchEl)benchEl.placeholder=S.bench[o.num.modality]?`Median: ${fmt(num(S.bench[o.num.modality]))}`:'';
-  const line=(title,how,pts,max)=>`<div class="calc"><span>${title}</span><span class="how">${how}</span><span class="pts ${pts==null?'none':''}">${pts==null?'–':fp(pts)} / ${max}</span></div>`;
-  document.getElementById('numcalc').innerHTML=
-   line('Cost per completing graduate',n.cost.pts==null?'Needs the EAA contribution, students, completion rate and a benchmark (set medians under How the score works).':`${fmt(num(o.num.eaa))} ÷ (${fmt(num(o.num.students))} × ${num(o.num.comp)}%) = ${fmt(n.cost.c)} USD per graduate, ${(n.cost.ratio*100).toFixed(0)}% of the ${fmt(b)} benchmark`,n.cost.pts,10)+
-   line('Co-funding leverage',n.lev.pts==null?'Needs the EAA contribution and funding from others.':(num(o.num.eaa)===0?'EAA manages only, with no EAA funds':`${fmt(num(o.num.other))} ÷ ${fmt(num(o.num.eaa))} = ${n.lev.l.toFixed(2)} from others per EAA dollar`),n.lev.pts,10)+
-   line('Students reached',n.stu.pts==null?'Needs the number of students.':`${fmt(n.stu.v)} students`,n.stu.pts,6)+
-   line('Expected completion',n.comp.pts==null?'Needs the partner’s completion rate.':`${n.comp.v}% in the partner’s last cohort`,n.comp.pts,4);
+  document.getElementById('tierbox').innerHTML=t?`<b>Tier ${t.tier}: ${TIERS[t.tier].pts} of 15 points.</b><span>${TIERS[t.tier].rule}.</span><span>${t.qe?'<span class="tag qe">QatarEnergy</span>':''}${esc(t.basis)} ${t.src?`<a href="${t.src}" target="_blank" rel="noopener">Source</a>`:''}${t.src2?` · <a href="${t.src2}" target="_blank" rel="noopener">Second source</a>`:''}</span>`:'<span>No context chosen yet: 0 of 15 points assessed.</span>';
+  EVIDENCE.forEach(x=>{const v=o.ev[x.id]||{},w=document.getElementById(`${id}-${x.id}-warn`);if(w)w.textContent=v.on&&!String(v.src||'').trim()?'Name the source, or this signal earns nothing.':''});
+  BONUS.forEach(x=>{if(!x.note)return;const v=o.bonus[x.id]||{},w=document.getElementById(`${id}-${x.id}-warn`);if(w)w.textContent=v.on&&!String(v.note||'').trim()?'Add a note, or this bonus earns nothing.':''});
+  BLOCKS.forEach(b=>b.items.forEach(i=>{const el=document.getElementById('pt-'+i.id),ir=r.items[i.id];if(!el)return;
+    el.textContent=ir.na?'N/A':ir.pts==null?`– / ${i.pts}`:`${fp(ir.pts)} / ${i.pts}`;el.className='pts'+(ir.pts==null||ir.na?' none':'');
+    const hw=document.getElementById('how-'+i.id);if(hw)hw.textContent=ir.how||''}));
+  const benchEl=document.getElementById(id+'-bench');if(benchEl)benchEl.placeholder=S.bench[o.num.modality]?`Median: ${fmt(num(S.bench[o.num.modality]))}`:'';
+  ['comp','emp'].forEach(k=>{const el=document.getElementById(`${id}-${k}`);if(el)el.disabled=!!o.num[k+'NA']});
   save();renderList();
 }
-function scorecard(){const o=cur(),r=compute(o),t=CONTEXTS.find(c=>c.id===o.country),L=[];
-  L.push(`${o.name}`,`Score ${fp(r.total)} / 100 · ${r.band[0]}${r.final?'':' (provisional)'} · ${r.complete} of 100 points assessed`,'');
+function scorecard(){const o=cur(),r=compute(o),ra=rationale(o,r),t=CONTEXTS.find(c=>c.id===o.country),L=[];
+  L.push(o.name,`Score ${fp(r.total)}% · ${r.band[0]}${r.final?'':' (provisional)'} · ${r.complete}% assessed`,'',ra.verdict,'');
+  L.push(r.band[0]==='Pursue'?'Why we should pursue:':'What works in its favour:');ra.why.forEach(x=>L.push('  - '+x));L.push(ra.shapeTitle+':');ra.shape.forEach(x=>L.push('  - '+x.text+(x.g!=null?` (+${fp(x.g)})`:'')));L.push('');
   L.push('Gates: '+GATES.map(g=>`${g.t}: ${o.gates[g.id]==='yes'?'Yes':o.gates[g.id]==='no'?'No':'Not checked'}`).join('; '));
-  L.push(`A Country: ${t?`${t.name}, Tier ${t.tier}`:'not set'} = ${r.blocks.A.pts}`);
-  L.push(`B Evidence = ${r.blocks.B.pts}`);EVIDENCE.forEach(x=>{const v=o.ev[x.id];if(v&&v.on)L.push(`  +${x.pts} ${x.t} (${v.date||'no date'}): ${v.src||'no source'}`)});
-  BLOCKS.forEach(b=>{L.push(`${b.id} ${b.name} = ${fp(r.blocks[b.id].pts)}`);b.items.forEach(i=>L.push(`  ${i.t}: ${o.ans[i.id]||'unanswered'} (${fp(ansPts(i.pts,o.ans[i.id]))}/${i.pts})`))});
-  const n=r.num;L.push(`E Numbers = ${fp(r.blocks.E.pts)} (cost ${fp(n.cost.pts)}, leverage ${fp(n.lev.pts)}, students ${fp(n.stu.pts)}, completion ${fp(n.comp.pts)})`);
-  L.push(`R Risk = ${fp(r.blocks.R.pts)}`);RISKS.forEach(x=>{if(o.risk[x.id])L.push(`  -${x.pts} ${x.t}`)});
+  ORDER.forEach(k=>{const b=r.blocks[k];L.push(`${BLOCK_NAMES[k]}: ${k==='K'||k==='R'?fp(b.pts):`${pctOf(b)}% (${fp(b.pts)} of ${b.max})`}`)});
+  if(t)L.push(`Country: ${t.name}, Tier ${t.tier}`);
   return L.join('\n')}
 
 /* ---------- One-page PDF ---------- */
 const CP1252='€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ';
-function pdfText(s){return String(s??'').replace(/[−‐‑]/g,'-').replace(/[   ]/g,' ').replace(/[^\x20-\x7E¡-ÿ\n]/g,c=>CP1252.includes(c)?c:'')}
-function autoSummary(o,r){
-  const t=CONTEXTS.find(c=>c.id===o.country),parts=[];
-  const pct=k=>r.blocks[k].max?r.blocks[k].pts/r.blocks[k].max:0;
-  if(t)parts.push(`${t.name} sits in Tier ${t.tier} of Qatar’s priority guide${t.qe&&t.g==='qe'?' as a QatarEnergy investment country':''}.`);
-  const strong=['C','D','E','F'].filter(k=>pct(k)>=0.75).map(k=>BLOCK_NAMES[k].toLowerCase());
-  if(strong.length)parts.push(`It scores strongly on ${strong.join(', ').replace(/, ([^,]*)$/,' and $1')}.`);
-  if(r.blocks.B.pts)parts.push(`${r.blocks.B.pts} points of verified evidence support the timing.`);
-  if(r.num.lev.pts!=null&&isFinite(r.num.lev.l)&&r.num.lev.l>0)parts.push(`Others add ${r.num.lev.l.toFixed(2)} for every EAA dollar.`);
-  return parts.join(' ');
-}
-function strengthsAndWatch(o,r){
-  const s=[],w=[];const pct=k=>r.blocks[k].max?r.blocks[k].pts/r.blocks[k].max:0;
-  ['A','B','C','D','E','F'].forEach(k=>{const p=pct(k);if(p>=0.75)s.push(`${BLOCK_NAMES[k]}: ${fp(r.blocks[k].pts)} of ${r.blocks[k].max}`);else if(p<0.5)w.push(`${BLOCK_NAMES[k]}: ${fp(r.blocks[k].pts)} of ${r.blocks[k].max}`)});
-  RISKS.forEach(x=>{if(o.risk[x.id])w.push(`Risk: ${x.t.charAt(0).toLowerCase()+x.t.slice(1)}`)});
-  GATES.forEach(g=>{if(o.gates[g.id]!=='yes')w.push(`Gate ${o.gates[g.id]==='no'?'failed':'not checked'}: ${g.t.charAt(0).toLowerCase()+g.t.slice(1)}`)});
-  return {s:s.slice(0,4),w:w.slice(0,4)};
-}
+function pdfText(s){return String(s??'').replace(/[−‐‑]/g,'-').replace(/[   ]/g,' ').replace(/[^\x20-\x7E¡-ÿ\n]/g,c=>CP1252.includes(c)?c:'')}
 function buildPDF(o){
   const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:'mm',format:'a4'});
-  const r=compute(o),t=CONTEXTS.find(c=>c.id===o.country),n=r.num;
-  const RED=[211,39,55],INK=[22,24,29],MUT=[96,102,114],LINE=[224,227,233],SOFT=[245,246,248],TINT=[251,233,235],QE=[29,79,134];
-  const BANDC={'Pursue':[[227,242,234],[27,112,70]],'Shape':[[251,240,220],[143,86,0]],'Watch':[[236,238,242],[90,96,108]],'Decline':[[253,236,235],[180,35,24]],'Not eligible':[[253,236,235],[180,35,24]]};
+  const r=compute(o),ra=rationale(o,r),t=CONTEXTS.find(c=>c.id===o.country);
+  const RED=[211,39,55],INK=[22,24,29],MUT=[96,102,114],LINE=[224,227,233],SOFT=[240,242,245],TINT=[251,233,235],GOOD=[27,112,70],WARN=[143,86,0],CRIT=[180,35,24],QE=[29,79,134];
+  const BANDC={'Pursue':[[227,242,234],GOOD],'Shape':[[251,240,220],WARN],'Watch':[[236,238,242],[90,96,108]],'Decline':[[253,236,235],CRIT],'Not eligible':[[253,236,235],CRIT]};
   const W=210,L=16,R=W-14,CW=R-L;
   const tc=c=>doc.setTextColor(...c),fc=c=>doc.setFillColor(...c),dc=c=>doc.setDrawColor(...c);
   const font=(sz,st='normal')=>{doc.setFont('helvetica',st);doc.setFontSize(sz)};
-  const txt=(s,x,y,o={})=>doc.text(Array.isArray(s)?s.map(pdfText):pdfText(s),x,y,o);
+  const txt=(s,x,y,op={})=>doc.text(Array.isArray(s)?s.map(pdfText):pdfText(s),x,y,op);
   const wrap=(s,w,max)=>{let ls=doc.splitTextToSize(pdfText(s),w);if(max&&ls.length>max){ls=ls.slice(0,max);ls[max-1]=ls[max-1].replace(/\s*\S*$/,'')+'…'}return ls};
   const label=(s,x,y,c=MUT,al)=>{font(6.5,'bold');tc(c);doc.setCharSpace(0.35);const u=pdfText(s.toUpperCase());txt(u,al==='right'?x-doc.getTextWidth(u)-0.35*(u.length-1):x,y);doc.setCharSpace(0)};
-  // edge and header
+  // edge + header
   fc(RED);doc.rect(0,0,5,297,'F');
-  label('Al Fakhoora · Education Above All',L,15,RED);
-  label('Opportunity justification',R,15,MUT,'right');
-  font(7.5);tc(MUT);txt(o.date?new Date(o.date+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'',R,19.5,{align:'right'});
-  font(19,'bold');tc(INK);const tl=wrap(o.name||'Untitled opportunity',CW-40,2);txt(tl,L,25);
-  let y=25+tl.length*7.2+0.5;
-  font(8.5);tc(MUT);
-  const sub=[t?`${t.name} · Tier ${t.tier}${t.qe?' · QatarEnergy country':''}`:'Country not set',o.num.modality||'',o.prep?`Prepared by ${o.prep}`:''].filter(Boolean).join('   |   ');
-  txt(sub,L,y);y+=5;
-  dc(LINE);doc.setLineWidth(0.3);doc.line(L,y,R,y);y+=6;
-  // hero: ring + recommendation
-  const cx=L+19,cy=y+19,rad=15.5;
-  dc(LINE);doc.setLineWidth(2.6);doc.circle(cx,cy,rad,'S');
+  label('Al Fakhoora · Education Above All',L,14,RED);label('Opportunity justification',R,14,MUT,'right');
+  font(7.5);tc(MUT);txt(o.date?new Date(o.date+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'',R,18.5,{align:'right'});
+  font(18,'bold');tc(INK);const tl=wrap(o.name||'Untitled opportunity',CW-40,2);txt(tl,L,24);
+  let y=24+tl.length*6.8+0.5;
+  font(8.5);tc(MUT);txt([t?`${t.name} · Tier ${t.tier}${t.qe?' · QatarEnergy country':''}`:'Country not set',o.num.modality||'',o.prep?`Prepared by ${o.prep}`:''].filter(Boolean).join('   |   '),L,y);
+  y+=4.5;dc(LINE);doc.setLineWidth(0.3);doc.line(L,y,R,y);y+=5;
+  // hero: ring
+  const cx=L+18,cy=y+17,rad=14;
+  dc(LINE);doc.setLineWidth(2.4);doc.circle(cx,cy,rad,'S');
   const frac=Math.max(0,Math.min(1,r.total/100));
-  if(frac>0){dc(r.gateFail?[180,35,24]:RED);doc.setLineCap('round');const steps=Math.max(2,Math.round(90*frac));let px=cx,py=cy-rad;for(let i=1;i<=steps;i++){const a=-Math.PI/2+2*Math.PI*frac*i/steps,nx=cx+rad*Math.cos(a),ny=cy+rad*Math.sin(a);doc.line(px,py,nx,ny);px=nx;py=ny}doc.setLineCap('butt')}
-  font(20,'bold');tc(INK);txt(fp(r.total),cx,cy+2.2,{align:'center'});
-  font(6.5);tc(MUT);txt('OUT OF 100',cx,cy+6.6,{align:'center'});
+  if(frac>0){dc(RED);doc.setLineCap('round');const steps=Math.max(2,Math.round(90*frac));let px=cx,py=cy-rad;for(let i=1;i<=steps;i++){const a=-Math.PI/2+2*Math.PI*frac*i/steps,nx=cx+rad*Math.cos(a),ny=cy+rad*Math.sin(a);doc.line(px,py,nx,ny);px=nx;py=ny}doc.setLineCap('butt')}
+  font(19,'bold');tc(INK);txt(fp(r.total)+'%',cx,cy+2.4,{align:'center'});
+  font(6);tc(MUT);txt('SCORE',cx,cy+6.4,{align:'center'});
   const bc=BANDC[r.band[0]];font(7.5,'bold');const bw=doc.getTextWidth(r.band[0].toUpperCase())+8;
-  fc(bc[0]);doc.roundedRect(cx-bw/2,cy+rad+4,bw,6,3,3,'F');tc(bc[1]);doc.setCharSpace(0.3);txt(r.band[0].toUpperCase(),cx,cy+rad+8.2,{align:'center'});doc.setCharSpace(0);
-  font(6.5);tc(MUT);txt(r.final?'Final assessment':`Provisional · ${r.complete}% assessed`,cx,cy+rad+14,{align:'center'});
-  // recommendation panel
-  const rx=L+44,rw=R-rx,ry=y-1,rh=46;
+  fc(bc[0]);doc.roundedRect(cx-bw/2,cy+rad+3.5,bw,6,3,3,'F');tc(bc[1]);doc.setCharSpace(0.3);txt(r.band[0].toUpperCase(),cx,cy+rad+7.7,{align:'center'});doc.setCharSpace(0);
+  font(6.3);tc(MUT);txt(r.final?'Final assessment':`Provisional · ${r.complete}% assessed`,cx,cy+rad+13,{align:'center'});
+  // verdict panel
+  const rx=L+42,rw=R-rx,ry=y-1;
+  font(9.5,'bold');const vl=wrap(ra.verdict,rw-12,3);
+  font(8.5);const ul=o.rec&&o.rec.trim()?wrap(o.rec.trim(),rw-12,5):[];
+  const rh=Math.max(40,10+vl.length*4.4+(ul.length?6+ul.length*3.9:0)+4);
   fc(TINT);doc.roundedRect(rx,ry,rw,rh,2.5,2.5,'F');fc(RED);doc.rect(rx,ry+3,1.2,rh-6,'F');
-  label(o.rec&&o.rec.trim()?'Recommendation':'Summary from the scores',rx+6,ry+7,RED);
-  font(9.5);tc(INK);const recText=(o.rec&&o.rec.trim())?o.rec.trim():autoSummary(o,r);
-  const rl=wrap(recText||' ',rw-12,8);doc.setLineHeightFactor(1.35);txt(rl,rx+6,ry+13);doc.setLineHeightFactor(1.15);
-  y=ry+rh+10;
-  // strengths and watch points
-  const sw=strengthsAndWatch(o,r),half=(CW-8)/2;
-  const bullets=(title,items,x,c,empty)=>{label(title,x,y,c);font(8.5);tc(INK);let yy=y+5;(items.length?items:[empty]).forEach(s=>{fc(c);doc.circle(x+1,yy-1.1,0.7,'F');tc(items.length?INK:MUT);const ls=wrap(s,half-6,1);txt(ls,x+4,yy);yy+=4.6});return yy};
-  const y1=bullets('Why proceed',sw.s,L,[27,112,70],'No block scores 75% or more yet');
-  const y2=bullets('Watch points',sw.w,L+half+8,[143,86,0],'None flagged');
+  label('The verdict',rx+6,ry+6.5,RED);
+  font(9.5,'bold');tc(INK);doc.setLineHeightFactor(1.3);txt(vl,rx+6,ry+12);
+  let vy=ry+12+vl.length*4.4+1.5;
+  if(ul.length){label('Recommendation',rx+6,vy+2,MUT);font(8.5);tc(INK);txt(ul,rx+6,vy+6.5)}
+  doc.setLineHeightFactor(1.15);
+  y=Math.max(ry+rh,cy+rad+15)+5;
+  // why + shape
+  const half=(CW-8)/2;
+  const bullets=(title,items,x,c,empty,gains)=>{label(title,x,y,c);let yy=y+5;
+    if(!items.length){font(8);tc(MUT);txt(empty,x,yy);return yy+4.5}
+    items.forEach(it=>{const s=typeof it==='string'?it:it.text,g=typeof it==='string'?null:it.g;fc(c);doc.circle(x+1,yy-1.1,0.75,'F');
+      font(8);tc(INK);const ls=wrap(s,half-(g!=null?14:5),2);txt(ls,x+4,yy);
+      if(g!=null){font(7.5,'bold');tc(c);txt(`+${fp(g)}`,x+half,yy,{align:'right'})}yy+=ls.length*3.4+1});return yy};
+  const y1=bullets(r.band[0]==='Pursue'?'Why we should pursue':'What works in its favour',ra.why.slice(0,4),L,GOOD,'Answer the checklist to build the case');
+  const y2=bullets(ra.shapeTitle,ra.shape.slice(0,4),L+half+8,r.gateFail?CRIT:WARN,'Nothing left to shape',true);
   y=Math.max(y1,y2)+3;
-  // score build-up
-  label('Score build-up',L,y);y+=4;
-  const rows=['A','B','C','D','E','F','R'];const lw=34,vw=16,bx=L+lw,bwid=CW-lw-vw;
-  rows.forEach(k=>{const b=r.blocks[k];font(8);tc(INK);txt(BLOCK_NAMES[k],L,y+2.6);
-    fc(SOFT);doc.roundedRect(bx,y,bwid,3.2,1.6,1.6,'F');
-    const f=b.max?Math.abs(b.pts)/b.max:0;if(f>0){fc(k==='R'?[180,35,24]:k==='A'&&t&&t.qe&&t.g==='qe'?QE:RED);doc.roundedRect(bx,y,Math.max(3.2,bwid*f),3.2,1.6,1.6,'F')}
-    font(8,'bold');tc(k==='R'&&b.pts<0?[180,35,24]:INK);txt(k==='R'?`${fp(b.pts)}`:`${fp(b.pts)} / ${b.max}`,R,y+2.6,{align:'right'});y+=5.4});
+  // score build-up in percent
+  label('Score build-up',L,y);font(6.3);tc(MUT);txt('Each block as a percentage of its maximum; bonus and risk in percentage points of the total',R,y,{align:'right'});y+=3.5;
+  const lw=38,vw=14,bx=L+lw,bwid=CW-lw-vw;
+  ORDER.forEach(k=>{const b=r.blocks[k],adj=k==='K'||k==='R';font(7.8);tc(INK);txt(BLOCK_NAMES[k],L,y+2.5);
+    fc(SOFT);doc.roundedRect(bx,y,bwid,3,1.5,1.5,'F');
+    const f=b.max?Math.abs(b.pts)/b.max:0;if(f>0){fc(k==='R'?CRIT:k==='K'?GOOD:k==='A'&&t&&t.qe&&t.g!=='mofa1'&&t.g!=='mofa2'?QE:RED);doc.roundedRect(bx,y,Math.max(3,bwid*f),3,1.5,1.5,'F')}
+    font(7.8,'bold');tc(k==='R'&&b.pts<0?CRIT:INK);txt(adj?`${b.pts>0?'+':''}${fp(b.pts)}%`:`${pctOf(b)}%`,R,y+2.5,{align:'right'});y+=4.1});
   y+=3;
-  // three department columns
+  // department columns
   const colW=(CW-10)/3,cols=[L,L+colW+5,L+2*(colW+5)],top=y;
-  const colHead=(i,title)=>{fc(INK);doc.rect(cols[i],top,colW,0.8,'F');label(title,cols[i],top+5,INK)};
-  const kv=(i,yy,k,v,bold)=>{font(7.5);tc(MUT);txt(k,cols[i],yy);font(7.5,bold?'bold':'normal');tc(INK);txt(v,cols[i]+colW,yy,{align:'right'});return yy+4.3};
-  colHead(0,'Finance');let fy=top+10;
-  const eaa=num(o.num.eaa),oth=num(o.num.other);
-  fy=kv(0,fy,'EAA contribution',eaa!=null?`$${fmt(eaa)}`:'–');
-  fy=kv(0,fy,'Funding from others',oth!=null?`$${fmt(oth)}`:'–');
-  fy=kv(0,fy,'Programme total',eaa!=null&&oth!=null?`$${fmt(eaa+oth)}`:'–',true);
-  fy=kv(0,fy,'Leverage',n.lev.pts!=null?(isFinite(n.lev.l)?`${n.lev.l.toFixed(2)} : 1`:'EAA manages only'):'–');
-  fy=kv(0,fy,'Students',n.stu.pts!=null?fmt(n.stu.v):'–');
-  fy=kv(0,fy,'Expected completion',n.comp.pts!=null?`${n.comp.v}%`:'–');
-  fy=kv(0,fy,'Cost per graduate',n.cost.pts!=null?`$${fmt(n.cost.c)}`:'–',true);
-  fy=kv(0,fy,'Benchmark',n.cost.b?`$${fmt(n.cost.b)}`:'–');
-  fy=kv(0,fy,'Numbers score',`${fp(r.blocks.E.pts)} / 30`,true);
-  colHead(1,'Legal and compliance');let ly=top+10;
-  GATES.forEach(g=>{const v=o.gates[g.id];const c=v==='yes'?[27,112,70]:v==='no'?[180,35,24]:[143,86,0];fc(c);doc.circle(cols[1]+1.2,ly-1.1,1,'F');font(7.5);tc(INK);const ls=wrap(g.t,colW-14,2);txt(ls,cols[1]+4,ly);font(7,'bold');tc(c);txt(v==='yes'?'Pass':v==='no'?'Fail':'Open',cols[1]+colW,ly,{align:'right'});ly+=ls.length*3.4+1.6});
-  ly+=1.5;font(7,'bold');tc(MUT);txt('RISKS FLAGGED',cols[1],ly);ly+=4;
+  const colHead=(i,title)=>{fc(INK);doc.rect(cols[i],top,colW,0.7,'F');label(title,cols[i],top+4.6,INK)};
+  const kv=(i,yy,k,v,bold)=>{font(7.3);tc(MUT);txt(k,cols[i],yy);font(7.3,bold?'bold':'normal');tc(INK);txt(v,cols[i]+colW,yy,{align:'right'});return yy+3.6};
+  const it=r.items,eaa=num(o.num.eaa),oth=num(o.num.other);
+  colHead(0,'Finance');let fy=top+9.5;
+  fy=kv(0,fy,'EAA contribution',eaa!=null?usd(eaa):'–');
+  fy=kv(0,fy,'Partners and others',oth!=null?usd(oth):'–');
+  fy=kv(0,fy,'Programme total',eaa!=null&&oth!=null?usd(eaa+oth):'–',true);
+  fy=kv(0,fy,'Partner share',it.share.pts!=null?`${it.share.v.toFixed(0)}%`:'–',true);
+  fy=kv(0,fy,'Students',it.stu.pts!=null?fmt(it.stu.v):'–');
+  fy=kv(0,fy,'Completion',it.comp.na?'N/A':it.comp.pts!=null?`${it.comp.v}%`:'–');
+  fy=kv(0,fy,o.num.compNA?'Cost per student':'Cost per graduate',it.cost.pts!=null?usd(it.cost.v):'–',true);
+  fy=kv(0,fy,'Benchmark',benchFor(o)?usd(benchFor(o)):'–');
+  fy=kv(0,fy,'Graduate employment',it.emp.na?'N/A':it.emp.pts!=null?`${it.emp.v}%`:'–');
+  colHead(1,'Legal and compliance');let ly=top+9.5;
+  GATES.forEach(g=>{const v=o.gates[g.id];const c=v==='yes'?GOOD:v==='no'?CRIT:WARN;fc(c);doc.circle(cols[1]+1.1,ly-1.1,0.95,'F');font(7.3);tc(INK);const ls=wrap(g.t,colW-14,2);txt(ls,cols[1]+3.8,ly);font(7,'bold');tc(c);txt(v==='yes'?'Pass':v==='no'?'Fail':'Open',cols[1]+colW,ly,{align:'right'});ly+=ls.length*3.3+1.3});
+  ly+=1;label('Risks flagged',cols[1],ly);ly+=3.8;
   const fl=RISKS.filter(x=>o.risk[x.id]);
-  if(!fl.length){font(7.5);tc(INK);txt('None flagged',cols[1],ly);ly+=4.3}
-  fl.slice(0,4).forEach(x=>{font(7.5);tc(INK);const ls=wrap(x.t,colW-10,2);txt(ls,cols[1],ly);font(7.5,'bold');tc([180,35,24]);txt(`-${x.pts}`,cols[1]+colW,ly,{align:'right'});ly+=ls.length*3.4+1.2});
-  ly=kv(1,ly+1,'Risk deduction',`${fp(r.blocks.R.pts)}`,true);
-  colHead(2,'Strategy and management');let sy=top+10;
-  if(t){font(8,'bold');tc(INK);txt(`${t.name}: Tier ${t.tier}, ${TIERS[t.tier].pts} pts`,cols[2],sy);sy+=4;font(7);tc(MUT);const bl=wrap(t.basis,colW,4);txt(bl,cols[2],sy);sy+=bl.length*3.1+2}
-  else{font(7.5);tc(MUT);txt('Country not set',cols[2],sy);sy+=5}
-  font(7,'bold');tc(MUT);txt('VERIFIED EVIDENCE',cols[2],sy);sy+=4;
-  const evs=EVIDENCE.filter(x=>{const v=o.ev[x.id];return v&&v.on&&String(v.src||'').trim()});
-  if(!evs.length){font(7.5);tc(INK);txt('None recorded',cols[2],sy);sy+=4.3}
-  evs.slice(0,3).forEach(x=>{const v=o.ev[x.id];font(7.5,'bold');tc(INK);txt(`+${x.pts}  ${x.t}`,cols[2],sy);sy+=3.4;font(6.8);tc(MUT);const ls=wrap(v.date?`${v.date} · ${v.src}`:v.src,colW,1);txt(ls,cols[2],sy);sy+=4});
-  sy=kv(2,sy+0.5,'QFFD fit',`${fp(r.blocks.C.pts)} / 15`,true);
-  y=Math.max(fy,ly,sy)+3;
-  // checklist grid
-  dc(LINE);doc.setLineWidth(0.3);doc.line(L,y,R,y);y+=5;label('Checklist answers',L,y);
-  font(6.5);tc(MUT);txt('Filled: Yes   Half: Partly   Ring: No   Dash: unanswered',R,y,{align:'right'});y+=4.5;
-  const items=BLOCKS.flatMap(b=>b.items.map(i=>({...i,b:b.id})));const half2=(CW-8)/2;
-  items.forEach((i,k)=>{const col=k<6?0:1,row=k%6,x=L+col*(half2+8),yy=y+row*4.6;const a=o.ans[i.id];
+  if(!fl.length){font(7.3);tc(INK);txt('None flagged',cols[1],ly);ly+=3.9}
+  fl.slice(0,4).forEach(x=>{font(7.3);tc(INK);const ls=wrap(x.t,colW-9,2);txt(ls,cols[1],ly);font(7.3,'bold');tc(CRIT);txt(`-${x.pts}`,cols[1]+colW,ly,{align:'right'});ly+=ls.length*3.3+1});
+  colHead(2,'Strategy and management');let sy=top+9.5;
+  if(t){font(7.6,'bold');tc(INK);txt(`${t.name}: Tier ${t.tier}`,cols[2],sy);sy+=3.7;font(6.8);tc(MUT);const bl=wrap(t.basis,colW,3);txt(bl,cols[2],sy);sy+=bl.length*3+1.5}
+  else{font(7.3);tc(MUT);txt('Country not set',cols[2],sy);sy+=4.5}
+  label('Evidence and ties',cols[2],sy);sy+=3.8;
+  const evs=EVIDENCE.filter(x=>{const v=o.ev[x.id];return v&&v.on&&String(v.src||'').trim()}).map(x=>({p:x.pts,t:x.t,s:(o.ev[x.id].date?o.ev[x.id].date+' · ':'')+o.ev[x.id].src}));
+  BONUS.filter(x=>{const v=o.bonus[x.id];return v&&v.on&&(!x.note||String(v.note||'').trim())}).forEach(x=>evs.push({p:x.pts,t:x.t,s:o.bonus[x.id].note||x.d,bonus:true}));
+  if(!evs.length){font(7.3);tc(INK);txt('None recorded',cols[2],sy);sy+=3.9}
+  evs.slice(0,4).forEach(e=>{font(7.1,'bold');tc(e.bonus?GOOD:INK);txt(wrap(`+${e.p}  ${e.t}`,colW,1),cols[2],sy);sy+=3.2;font(6.5);tc(MUT);txt(wrap(e.s,colW,1),cols[2],sy);sy+=3.7});
+  y=Math.max(fy,ly,sy)+2.5;
+  // checklist
+  dc(LINE);doc.setLineWidth(0.3);doc.line(L,y,R,y);y+=4.5;label('Checklist answers',L,y);
+  font(6.3);tc(MUT);txt('Filled: Yes   Half: Partly   Ring: No   N/A: not applicable   Dash: open',R,y,{align:'right'});y+=4.2;
+  const items=BLOCKS.flatMap(b=>b.items.filter(i=>i.k==='check').map(i=>({...i,b:b.id})));const rows=Math.ceil(items.length/2),half2=(CW-8)/2;
+  items.forEach((i,k)=>{const col=k<rows?0:1,row=k%rows,x=L+col*(half2+8),yy=y+row*3.8;const a=o.ans[i.id];
     dc(INK);doc.setLineWidth(0.3);
-    if(a==='yes'){fc(INK);doc.circle(x+1.3,yy-1.1,1.3,'F')}
-    else if(a==='partly'){doc.circle(x+1.3,yy-1.1,1.3,'S');fc(INK);doc.rect(x,yy-2.4,1.3,2.6,'F')}
-    else if(a==='no'){doc.circle(x+1.3,yy-1.1,1.3,'S')}
-    else{dc(MUT);doc.line(x+0.3,yy-1.1,x+2.3,yy-1.1)}
-    font(7.5);tc(INK);txt(wrap(`${i.b} · ${i.t}`,half2-22,1),x+5,yy);
-    const p=ansPts(i.pts,a);font(7.5,'bold');tc(p==null?MUT:INK);txt(`${p==null?'–':fp(p)} / ${i.pts}`,x+half2,yy,{align:'right'})});
-  y+=6*4.6+2;
-  // sign-off
-  const so=Math.max(y+2,262);const sw4=(CW-12)/4;
-  ['Programme','Finance','Legal','Management'].forEach((s,i)=>{const x=L+i*(sw4+4);fc(SOFT);doc.roundedRect(x,so,sw4,18,2,2,'F');label(s,x+3,so+5);dc([190,195,204]);doc.setLineWidth(0.25);doc.line(x+3,so+13,x+sw4-3,so+13);font(6);tc(MUT);txt('Name, signature, date',x+3,so+16.2)});
-  // footer
-  font(6.5);tc(MUT);txt(`Scored with Opportunity Compass · ${RULES_VERSION} · Score = country + evidence + QFFD fit + need + numbers + delivery - risk`,L,289);
-  txt('1 / 1',R,289,{align:'right'});
+    if(a==='yes'){fc(INK);doc.circle(x+1.2,yy-1.1,1.2,'F')}
+    else if(a==='partly'){doc.circle(x+1.2,yy-1.1,1.2,'S');fc(INK);doc.rect(x,yy-2.3,1.2,2.4,'F')}
+    else if(a==='no'){doc.circle(x+1.2,yy-1.1,1.2,'S')}
+    else if(a==='na'){font(5.5,'bold');tc(MUT);txt('N/A',x-0.4,yy-0.3)}
+    else{dc(MUT);doc.line(x+0.2,yy-1.1,x+2.2,yy-1.1)}
+    font(7.3);tc(INK);txt(wrap(`${i.b} · ${i.t}`,half2-20,1),x+5,yy);
+    const ir=r.items[i.id];font(7.3,'bold');tc(ir.pts==null||ir.na?MUT:INK);txt(ir.na?'N/A':`${ir.pts==null?'–':fp(ir.pts)} / ${i.pts}`,x+half2,yy,{align:'right'})});
+  y+=rows*3.8;
+  // footer, always clear of the content
+  const fy2=Math.max(y+5,287);
+  dc(LINE);doc.setLineWidth(0.3);doc.line(L,fy2-4,R,fy2-4);
+  font(6.3);tc(MUT);txt(`Opportunity Compass · ${RULES_VERSION}`,L,fy2);txt('Score = country + evidence + QFFD fit + need + numbers + employment + delivery + bonus - risk, capped at 100',L,fy2+3.2);
+  txt('Page 1 of 1',R,fy2,{align:'right'});
   return doc;
 }
 
@@ -548,35 +642,30 @@ function renderMethod(){
   const rows=[];
   const sub=(l,m)=>rows.push(`<tr class="sub"><td colspan="2">${l}</td><td class="n">${m}</td></tr>`);
   const row=(a,b,c)=>rows.push(`<tr><td>${a}</td><td>${b}</td><td class="n">${c}</td></tr>`);
-  sub('A · Country priority','20');Object.entries(TIERS).forEach(([k,v])=>row(`Tier ${k}`,v.rule,v.pts));
+  sub('A · Country priority','15');Object.entries(TIERS).forEach(([k,v])=>row(`Tier ${k}`,v.rule,v.pts));
   sub('B · Verified evidence (capped)','10');EVIDENCE.forEach(x=>row(x.t,x.d+'. Counts once a source is named; the date is optional.','+'+x.pts));
-  BLOCKS.slice(0,2).forEach(b=>{sub(`${b.id} · ${b.name}`,b.max);b.items.forEach(i=>row(i.t,`Yes: ${i.y}. Partly: ${i.p}.`,i.pts))});
-  sub('E · The numbers','30');
-  row('Cost per completing graduate','EAA contribution ÷ (students × completion rate), compared with the benchmark. At or below 50% of benchmark: 10 · 75%: 8 · 100%: 6 · 125%: 4 · 150%: 2 · above 150%: 0','10');
-  row('Co-funding leverage','Funding from others ÷ EAA contribution. 3 or more: 10 · 2: 8 · 1: 6 · 0.5: 4 · above 0: 2 · none: 0. EAA manages with no own funds: 10','10');
-  row('Students reached','2,000 or more: 6 · 1,000: 5 · 500: 4 · 250: 3 · 100: 2 · 25: 1 · fewer: 0','6');
-  row('Expected completion','Partner’s last cohort. 90% or more: 4 · 80%: 3 · 70%: 2 · 60%: 1 · lower: 0','4');
-  const F=BLOCKS[2];sub(`${F.id} · ${F.name}`,F.max);F.items.forEach(i=>row(i.t,`Yes: ${i.y}. Partly: ${i.p}.`,i.pts));
+  BLOCKS.forEach(b=>{sub(`${b.id} · ${b.name}`,b.max);b.items.forEach(i=>row(i.t,i.k==='num'?BAND[i.id].txt:`Yes: ${i.y}. Partly: ${i.p}. N/A removes the line.`,i.pts))});
+  sub('Bonus (capped, on top)','+10');BONUS.forEach(x=>row(x.t,x.d+(x.note?'. Needs a note.':'.'),'+'+x.pts));
   sub('R · Risk deductions (capped)','−15');RISKS.forEach(x=>row(x.t,x.d,'−'+x.pts));
   document.getElementById('v-method').innerHTML=`
   <div class="card"><h2>How the score works</h2>
-   <p class="lead">Every point comes from a rule written below. The scorer answers facts; the rulebook turns them into points. Nobody types a score directly.</p>
-   <div class="formula">Score = A country + B evidence + C QFFD fit + D need + E numbers + F delivery − R risk &nbsp;·&nbsp; maximum 100, minimum 0</div>
+   <p class="lead">Every point comes from a rule written below. The scorer answers facts; the rulebook turns them into points. Nobody types a score. Because the blocks add up to 100, every point is one percentage point of the score.</p>
+   <div class="formula">Score % = A country 15 + B evidence 10 + C QFFD fit 15 + D need 15 + E numbers 25 + G employment 10 + F delivery 10 + bonus (up to 10) − risk (up to 15), capped at 100</div>
    <ol class="steps">
     <li>Check the three gates. Any No stops the opportunity.</li>
     <li>Pick the beneficiaries’ origin. The country guide sets the points. A country on more than one list takes the higher tier.</li>
-    <li>Tick each evidence signal and name its source. The date is optional. No source, no points.</li>
-    <li>Answer each checklist line Yes, Partly or No against its written definition. Yes earns the full points, Partly half, No none.</li>
-    <li>Enter the figures. Fixed bands convert them to points.</li>
-    <li>Tick the risks that are true today.</li>
-    <li>Read the result: 70 or more, pursue; 55 to 69, shape the weakest block first; 40 to 54, watch; below 40, decline or refer. The result stays provisional until all 100 points are assessed and the gates are checked.</li>
-    <li>Export the one-page PDF for finance, legal and management sign-off.</li>
+    <li>Tick each evidence signal and name its source. The date is optional.</li>
+    <li>Answer each line Yes, Partly, No or N/A against its written definition. Yes earns the full points, Partly half, No none. N/A takes the line out, and the block rescales over the lines that apply, so a line that does not fit never costs points.</li>
+    <li>Enter the figures. Fixed bands convert them to points. The partner share carries the most weight, and its points climb fastest past 50%.</li>
+    <li>Tick bonuses with a note, and the risks that are true today.</li>
+    <li>Read the verdict: 70% or more, pursue; 55% to 69%, shape; 40% to 54%, watch; below 40%, decline or refer. The page writes the reasons and the changes that would add points, each with its value.</li>
+    <li>Export the one-page PDF for finance, legal and management.</li>
    </ol>
    <p class="note">To reduce bias, have two people score the same opportunity separately, then compare their scorecards line by line. A disagreement points to a definition that needs tightening.</p>
   </div>
   <div class="tablewrap"><table><thead><tr><th style="width:26%">Criterion</th><th>Rule</th><th style="width:70px;text-align:right">Points</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>
   <div class="card"><h2>Cost benchmarks by modality</h2>
-   <p class="lead">Median EAA cost per completing graduate from your finance workbook. Each opportunity compares against the median for its modality, so a master’s abroad is never judged against a TVET diploma.</p>
+   <p class="lead">Median EAA cost per completing graduate from your finance workbook. Each opportunity compares against the median for its modality.</p>
    <div class="grid2">${MODALITIES.map((m,i)=>`<label class="f">${m} (USD)<input type="number" min="0" id="bench-${i}" data-bench="${esc(m)}" value="${esc(S.bench[m]??'')}"></label>`).join('')}</div>
    <p class="note">These stay in this browser. An opportunity can override its benchmark on its own sheet.</p></div>`;
   document.querySelectorAll('[data-bench]').forEach(el=>el.addEventListener('input',e=>{const v=e.target.value;if(v==='')delete S.bench[e.target.dataset.bench];else S.bench[e.target.dataset.bench]=v;save()}));
@@ -586,9 +675,9 @@ function renderCountries(){
   <div class="card"><h2>Country priority guide</h2>
    <p class="lead">Tiers combine three public signals up to 1 November 2026: MOFA’s statements, QatarEnergy’s investments (from its Annual Review 2024 and announcements since), and QFFD’s priority geographies. MOFA’s most recent list came from the Global Security Forum in October 2026: Afghanistan, Gaza, Sudan, Lebanon, Somalia and Syria. QatarEnergy countries enter at Tier 2. A country on more than one list takes the higher tier.</p></div>
   ${GROUPS.map(g=>`<div class="tablewrap"><table><thead><tr><th style="width:24%">${g.label}</th><th style="width:70px;text-align:right">Points</th><th>Basis</th></tr></thead><tbody>
-   ${CONTEXTS.filter(c=>c.g===g.id).map(c=>`<tr><td>${esc(c.name)}</td><td class="n">${TIERS[c.tier].pts}</td><td>${c.qe&&c.g!=='qe'?'<span class="tag qe">Also QatarEnergy</span>':''}${esc(c.basis)} ${c.src?`<a href="${c.src}" target="_blank" rel="noopener">Source</a>`:''}${c.src2?` · <a href="${c.src2}" target="_blank" rel="noopener">QatarEnergy source</a>`:''}</td></tr>`).join('')}
+   ${CONTEXTS.filter(c=>c.g===g.id).map(c=>`<tr><td>${esc(c.name)}</td><td class="n">${TIERS[c.tier].pts}</td><td>${c.qe&&c.g!=='qe'&&c.g!=='qe2'?'<span class="tag qe">Also QatarEnergy</span>':''}${esc(c.basis)} ${c.src?`<a href="${c.src}" target="_blank" rel="noopener">Source</a>`:''}${c.src2?` · <a href="${c.src2}" target="_blank" rel="noopener">Second source</a>`:''}</td></tr>`).join('')}
   </tbody></table></div>`).join('')}
-  <p class="note">QatarEnergy countries come from its Annual Review 2024 and from announcements up to 1 November 2026. Countries it entered between 2019 and 2021 but that its latest review does not show are marked to confirm. LNG buyers with no QatarEnergy investment (such as India, Bangladesh, Kuwait and Taiwan) are left out. A strong signal from one country between reviews belongs in block B as evidence (a written request is worth 5 points), not in a tier change.</p>`;
+  <p class="note">QatarEnergy countries come from its Annual Review 2024 and from announcements up to 1 November 2026. Countries it entered between 2019 and 2021 but that its latest review does not show are marked to confirm. LNG buyers with no QatarEnergy investment (such as India, Bangladesh, Kuwait and Taiwan) are left out. A strong signal from one country between reviews belongs in block B as evidence, not in a tier change.</p>`;
 }
 
 /* ---------- Events ---------- */
@@ -598,14 +687,16 @@ const sheet=document.getElementById('sheet');
 function onInput(e){const el=e.target,o=cur();if(!o||S.adding||!el.id)return;
   if(el.dataset.f){o[el.dataset.f]=el.value;refresh();return}
   if(el.dataset.ev){const v=o.ev[el.dataset.ev]||(o.ev[el.dataset.ev]={on:false,date:'',src:''});v[el.dataset.k]=el.type==='checkbox'?el.checked:el.value;refresh();return}
+  if(el.dataset.bonus){const v=o.bonus[el.dataset.bonus]||(o.bonus[el.dataset.bonus]={on:false,note:''});v[el.dataset.k]=el.type==='checkbox'?el.checked:el.value;refresh();return}
   if(el.dataset.risk){o.risk[el.dataset.risk]=el.checked;refresh();return}
-  if(el.dataset.n){o.num[el.dataset.n]=el.value;refresh();return}
+  if(el.dataset.n){o.num[el.dataset.n]=el.type==='checkbox'?el.checked:el.value;refresh();return}
   if(el.type==='radio'){const key=el.name.slice(o.id.length+1);if(GATES.some(g=>g.id===key))o.gates[key]=el.value;else o.ans[key]=el.value;refresh()}
 }
 sheet.addEventListener('input',onInput);sheet.addEventListener('change',onInput);
 sheet.addEventListener('submit',e=>{if(e.target.id!=='newform')return;e.preventDefault();
   const name=document.getElementById('new-name').value.trim();if(!name){document.getElementById('new-name').focus();return}
-  const id='u'+Date.now();S.opps.push(blankOpp(id,name,{country:document.getElementById('new-country').value,date:new Date().toISOString().slice(0,10),num:{eaa:'',other:'',students:'',comp:'',modality:document.getElementById('new-mod').value,bench:''}}));
+  const id='u'+Date.now(),nm=blankNum();nm.modality=document.getElementById('new-mod').value;
+  S.opps.push(blankOpp(id,name,{country:document.getElementById('new-country').value,date:new Date().toISOString().slice(0,10),num:nm}));
   S.sel=id;S.adding=false;save();renderSheet();window.scrollTo({top:0})});
 let downloads=null;
 (async()=>{try{downloads=await window.claude?.use?.('downloads')}catch(e){downloads=null}})();
@@ -613,7 +704,7 @@ sheet.addEventListener('click',async e=>{
   if(e.target.id==='cancelnew'){S.adding=false;renderSheet();return}
   if(e.target.id==='copy'){const txt=scorecard();try{await navigator.clipboard.writeText(txt);toast('Scorecard copied')}catch(err){toast('Copy is blocked in this view')}}
   if(e.target.id==='pdf'){const btn=e.target,note=document.getElementById('pdfnote'),o=cur();
-    if(!window.jspdf){note.textContent='The PDF library did not load. Check your connection and reload the page.';return}
+    if(!window.jspdf){note.textContent='The PDF library did not load. Check your internet connection and reload the page.';return}
     btn.disabled=true;btn.textContent='Preparing PDF…';note.textContent='';
     const fname=`${(o.name||'Opportunity').replace(/[^\w\- ]+/g,'').trim().replace(/\s+/g,'-')}-justification.pdf`;
     let doc;
@@ -634,6 +725,5 @@ function route(){const v=['score','method','countries'].includes(location.hash.s
   if(v==='method')renderMethod();if(v==='countries')renderCountries();if(v==='score')renderSheet();}
 window.addEventListener('hashchange',route);
 renderList();route();
-</script>
 
-</body></html>
+</script>
