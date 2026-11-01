@@ -266,8 +266,8 @@ const BLOCKS=[
     {id:'comp',k:'num',pts:3,t:'Partner completion rate',na:true}]},
   {id:'G',name:'Employment potential',max:10,items:[
     {id:'emp',k:'num',pts:6,t:'Partner’s graduate employment rate',na:true},
-    {id:'g2',k:'check',pts:2,t:'Employer links',y:'Signed internship or job-placement agreements with employers',p:'Informal links or career fairs'},
-    {id:'g3',k:'check',pts:2,t:'Graduate tracking',y:'Partner tracks graduates’ employment at 6 and 12 months',p:'Tracks once, or informally'}]},
+    {id:'j2',k:'check',pts:2,t:'Employer links',y:'Signed internship or job-placement agreements with employers',p:'Informal links or career fairs'},
+    {id:'j3',k:'check',pts:2,t:'Graduate tracking',y:'Partner tracks graduates’ employment at 6 and 12 months',p:'Tracks once, or informally'}]},
   {id:'F',name:'Delivery',max:10,items:[
     {id:'f1',k:'check',pts:3,t:'Al Fakhoora track record with this partner',y:'A completed project',p:'An ongoing project only'},
     {id:'f2',k:'check',pts:3,t:'Enrolment speed',y:'Students enrol within one academic year of signing',p:'Within two academic years'},
@@ -310,6 +310,7 @@ function migrate(o){const n={...blankOpp(o.id,o.name),...o};n.num={...blankNum()
   return n}
 try{const v=JSON.parse(localStorage.getItem(KEY)||'null');if(v&&Array.isArray(v.opps))S={...S,...v,adding:!v.opps.length};
   else{const v3=JSON.parse(localStorage.getItem('af-compass-v3')||'null');if(v3&&Array.isArray(v3.opps)){S={...S,opps:v3.opps.map(migrate),sel:v3.sel,bench:v3.bench||{},adding:!v3.opps.length}}}}catch(e){}
+S.opps.forEach(o=>{['g1','g2','g3'].forEach(g=>{const v=o.gates&&o.gates[g];if(v&&!['yes','no','open'].includes(v))delete o.gates[g]});if(o.ans){delete o.ans.g2;delete o.ans.g3}});
 try{['af-compass-v1','af-compass-v2','af-compass-v3'].forEach(k=>localStorage.removeItem(k))}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify({opps:S.opps,sel:S.sel,bench:S.bench}))}catch(e){}};
 const cur=()=>S.opps.find(o=>o.id===S.sel)||null;
@@ -448,7 +449,7 @@ function renderSheet(){
     <label class="f">Prepared by<input type="text" id="${id}-prep" data-f="prep" value="${esc(o.prep)}"></label>
     <label class="f">Assessment date<input type="date" id="${id}-date" data-f="date" value="${esc(o.date)}"></label></div></div>`);
   h.push(`<div class="card"><h2>Gates <span class="of">must all be Yes</span></h2><p class="lead">A single No stops the opportunity, whatever it scores.</p>
-   ${GATES.map(g=>`<fieldset class="q"><legend>${g.t}</legend><p class="def">${g.d}</p><div class="ctl">${seg(`${id}-${g.id}`,o.gates[g.id],[['yes','Yes'],['no','No'],['open','Not checked']])}</div></fieldset>`).join('')}</div>`);
+   ${GATES.map(g=>`<fieldset class="q"><legend>${g.t}</legend><p class="def">${g.d}</p><div class="ctl">${seg(`${id}-gate-${g.id}`,o.gates[g.id],[['yes','Yes'],['no','No'],['open','Not checked']])}</div></fieldset>`).join('')}</div>`);
   h.push(`<div class="card"><h2>A · Country priority <span class="of" id="of-A"></span></h2>
    <p class="lead">Set by the country guide, not by judgment. Pick where most beneficiaries come from, not where they study.</p>
    <label class="f">Beneficiaries’ origin<select id="${id}-country" data-f="country">${countryOptions(o.country)}</select></label>
@@ -663,6 +664,15 @@ function renderMethod(){
    </ol>
    <p class="note">To reduce bias, have two people score the same opportunity separately, then compare their scorecards line by line. A disagreement points to a definition that needs tightening.</p>
   </div>
+  <div class="card"><h2>What each verdict means</h2>
+   <p class="lead">The bands are fixed. To reach 70%, an opportunity has to earn about 7 of every 10 points available after risk. No single block can carry it alone: country and evidence together are worth only 25 points.</p>
+   <div class="tablewrap" style="border:0"><table><thead><tr><th style="width:18%">Verdict</th><th style="width:12%">Score</th><th>What it means</th><th style="width:30%">What happens next</th></tr></thead><tbody>
+    <tr><td><span class="pill p-pursue">Pursue</span></td><td>70% or more</td><td>Strong on Qatar alignment, need and value, with manageable risk. The case stands on verified facts. The verdict is final only when all three gates pass and the whole score is assessed.</td><td>Write the concept note and the QFFD pitch. Close the listed conditions before signing.</td></tr>
+    <tr><td><span class="pill p-shape">Shape</span></td><td>55% to 69%</td><td>Worth doing, with specific gaps. The page lists each change and the points it would add, such as a higher partner share, a signed ministry letter or a documented request.</td><td>Work on the listed changes, rescore, and pitch once it clears 70%.</td></tr>
+    <tr><td><span class="pill p-watch">Watch</span></td><td>40% to 54%</td><td>Not ready. Alignment, need or value is too thin today.</td><td>Keep it on the watch list. Rescore when MOFA, QFFD or a co-funder moves, or every quarter.</td></tr>
+    <tr><td><span class="pill p-decline">Decline</span></td><td>Below 40%</td><td>Does not fit Al Fakhoora’s priorities or Qatar’s current map.</td><td>Decline, or refer it to another EAA programme.</td></tr>
+    <tr><td><span class="pill p-stop">Not eligible</span></td><td>Any gate is No</td><td>Outside the mandate, failed due diligence, or blocked by a legal or sanctions barrier.</td><td>Stop, whatever the score.</td></tr>
+   </tbody></table></div></div>
   <div class="tablewrap"><table><thead><tr><th style="width:26%">Criterion</th><th>Rule</th><th style="width:70px;text-align:right">Points</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>
   <div class="card"><h2>Cost benchmarks by modality</h2>
    <p class="lead">Median EAA cost per completing graduate from your finance workbook. Each opportunity compares against the median for its modality.</p>
@@ -690,7 +700,7 @@ function onInput(e){const el=e.target,o=cur();if(!o||S.adding||!el.id)return;
   if(el.dataset.bonus){const v=o.bonus[el.dataset.bonus]||(o.bonus[el.dataset.bonus]={on:false,note:''});v[el.dataset.k]=el.type==='checkbox'?el.checked:el.value;refresh();return}
   if(el.dataset.risk){o.risk[el.dataset.risk]=el.checked;refresh();return}
   if(el.dataset.n){o.num[el.dataset.n]=el.type==='checkbox'?el.checked:el.value;refresh();return}
-  if(el.type==='radio'){const key=el.name.slice(o.id.length+1);if(GATES.some(g=>g.id===key))o.gates[key]=el.value;else o.ans[key]=el.value;refresh()}
+  if(el.type==='radio'){const key=el.name.slice(o.id.length+1);if(key.startsWith('gate-'))o.gates[key.slice(5)]=el.value;else o.ans[key]=el.value;refresh()}
 }
 sheet.addEventListener('input',onInput);sheet.addEventListener('change',onInput);
 sheet.addEventListener('submit',e=>{if(e.target.id!=='newform')return;e.preventDefault();
