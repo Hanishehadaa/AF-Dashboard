@@ -1,0 +1,639 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Opportunity Compass</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,400;8..144,500;8..144,650;8..144,800&family=Roboto+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a scoring sheet. Opportunity list on the left, the checklist in the middle, a sticky score ledger on top. Light only, by request. */
+:root{
+  color-scheme:light;
+  --bg:#f5f6f8; --surface:#ffffff; --ink:#16181d; --muted:#5a606c; --line:#e0e3e9; --soft:#f0f2f5;
+  --red:#D32737; --red-ink:#a81d2b; --red-tint:#fbe9eb;
+  --good:#1b7046; --good-tint:#e3f2ea; --warn:#8f5600; --warn-tint:#fbf0dc; --crit:#b42318; --crit-tint:#fdeceb; --grey-tint:#eceef2;
+  --f-ui:"Roboto Flex",Roboto,Arial,sans-serif; --f-num:"Roboto Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:15px;line-height:1.5;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 64px}
+.wrap{max-width:1180px;margin:0 auto;display:grid;gap:20px}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:12px}
+h1{font-weight:800;font-size:clamp(26px,5vw,36px);letter-spacing:-.02em;margin:0;line-height:1.1}
+h1 span{color:var(--red)}
+.asof{font-size:13px;color:var(--muted)}
+nav{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto}
+nav a{padding:10px 14px;color:var(--muted);text-decoration:none;font-weight:500;border-bottom:2px solid transparent;white-space:nowrap}
+nav a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--red)}
+nav a:focus-visible{outline:2px solid var(--red);outline-offset:-2px}
+.view{display:grid;gap:20px}
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:860px){.layout{grid-template-columns:minmax(0,1fr)}.opps{max-height:280px;overflow:auto}}
+.opps{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:6px;display:grid;gap:2px;position:sticky;top:max(12px,env(safe-area-inset-top,0px))}
+@media (max-width:860px){.opps{position:static}}
+.opp{all:unset;box-sizing:border-box;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:14px}
+.opp:hover{background:var(--soft)}
+.opp[aria-current="true"]{background:var(--red-tint)}
+.opp:focus-visible{outline:2px solid var(--red)}
+.opp .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.opp .sc{font-family:var(--f-num);font-size:13px;font-variant-numeric:tabular-nums}
+.opps .empty{padding:10px;font-size:13px;color:var(--muted)}
+.opps .tools{display:flex;gap:6px;padding:8px 4px 4px;border-top:1px solid var(--line);margin-top:4px;flex-wrap:wrap}
+.btn{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:7px 12px;border-radius:8px;cursor:pointer}
+.btn.primary{background:var(--red);border-color:var(--red);color:#fff}
+.btn.dark{background:var(--ink);border-color:var(--ink);color:#fff}
+.btn:disabled{opacity:.55;cursor:default}
+.btn:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.sheet{display:grid;gap:16px;min-width:0}
+.scorebar{position:sticky;top:max(12px,env(safe-area-inset-top,0px));z-index:5;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:16px;align-items:center;box-shadow:0 6px 18px -12px rgba(22,24,29,.25)}
+.big{font-family:var(--f-num);font-size:44px;font-weight:500;line-height:1;font-variant-numeric:tabular-nums}
+.big small{font-size:16px;color:var(--muted)}
+.meta{display:grid;gap:8px;min-width:0}
+.pills{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.pill{font-size:12px;font-weight:650;letter-spacing:.04em;text-transform:uppercase;padding:3px 9px;border-radius:999px}
+.p-pursue{background:var(--good-tint);color:var(--good)} .p-shape{background:var(--warn-tint);color:var(--warn)} .p-watch{background:var(--grey-tint);color:var(--muted)} .p-decline,.p-stop{background:var(--crit-tint);color:var(--crit)} .p-prov{background:var(--soft);color:var(--muted)}
+.blocks{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+@media (max-width:620px){.blocks{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.blk{font-size:11px;color:var(--muted);display:grid;gap:3px}
+.blk b{font-family:var(--f-num);font-weight:500;font-size:13px;color:var(--ink)}
+.blk i{display:block;height:4px;background:var(--soft);border-radius:2px;overflow:hidden}
+.blk i span{display:block;height:100%;background:var(--red)}
+.blk.neg i span{background:var(--crit)}
+.complete{font-size:12px;color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;display:grid;gap:14px}
+.card h2{margin:0;font-size:17px;display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+.card h2 .of{font-family:var(--f-num);font-weight:500;font-size:14px;color:var(--muted);white-space:nowrap}
+.card h2 .of b{color:var(--ink);font-weight:500}
+.card.export{border-color:var(--ink)}
+.lead{margin:0;color:var(--muted);font-size:14px;max-width:72ch}
+label.f{display:grid;gap:4px;font-size:13px;color:var(--muted)}
+input[type=text],input[type=number],input[type=date],select,textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid #cdd2da;border-radius:8px;padding:8px 10px;width:100%;min-width:0}
+textarea{min-height:96px;resize:vertical;line-height:1.45}
+input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--red);outline-offset:1px}
+.q{border:0;border-top:1px solid var(--line);padding:12px 0 0;margin:0;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 16px;align-items:start}
+.q:first-of-type{border-top:0;padding-top:0}
+.q legend{float:left;width:100%;padding:0;font-weight:500;font-size:14px}
+.q .def{grid-column:1;margin:0;font-size:13px;color:var(--muted)}
+.q .ctl{grid-column:2;grid-row:1 / span 2;display:flex;gap:8px;align-items:center}
+@media (max-width:620px){.q{grid-template-columns:minmax(0,1fr)}.q .ctl{grid-column:1;grid-row:auto}}
+.seg{display:inline-flex;border:1px solid #cdd2da;border-radius:8px;overflow:hidden}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{padding:6px 11px;font-size:13px;cursor:pointer;border-left:1px solid #cdd2da;white-space:nowrap;color:var(--muted)}
+.seg label:first-of-type{border-left:0}
+.seg input:checked+label{background:var(--ink);color:#fff}
+.seg input:focus-visible+label{outline:2px solid var(--red);outline-offset:-2px}
+.pts{font-family:var(--f-num);font-size:13px;min-width:5.5ch;text-align:right;font-variant-numeric:tabular-nums}
+.pts.none{color:#9aa0ab}
+.ev{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px 12px;align-items:start;border-top:1px solid var(--line);padding-top:12px}
+.ev:first-of-type{border-top:0;padding-top:0}
+.ev input[type=checkbox]{width:18px;height:18px;margin-top:2px;accent-color:var(--red)}
+.ev .txt{display:grid;gap:2px;font-size:14px}
+.ev .txt small{color:var(--muted);font-size:13px}
+.ev .src{grid-column:2 / span 2;display:grid;grid-template-columns:150px minmax(0,1fr);gap:8px}
+@media (max-width:620px){.ev .src{grid-template-columns:minmax(0,1fr)}}
+.warn{font-size:12px;color:var(--warn)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.calc{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 16px;border-top:1px solid var(--line);padding-top:12px;font-size:14px}
+.calc .how{color:var(--muted);font-size:13px;grid-column:1}
+.calc .pts{grid-column:2;grid-row:1 / span 2}
+.tierbox{background:var(--soft);border-radius:10px;padding:12px 14px;font-size:14px;display:grid;gap:4px}
+.tierbox b{font-weight:650}
+.tierbox a{color:var(--red-ink)}
+.note{font-size:13px;color:var(--muted);margin:0;max-width:75ch}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:640px}
+th,td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:12px;color:var(--muted);font-weight:500;background:var(--soft)}
+td.n{font-family:var(--f-num);text-align:right;white-space:nowrap}
+tr.sub td{background:#fafbfc;font-weight:650}
+td a{color:var(--red-ink)}
+.tag{display:inline-block;font-size:11px;font-weight:650;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:var(--soft);color:var(--muted);margin-right:6px}
+.tag.qe{background:#e6eef8;color:#1d4f86}
+.formula{font-family:var(--f-num);font-size:13px;background:var(--soft);border-radius:8px;padding:10px 12px;overflow-x:auto;white-space:nowrap}
+.steps{margin:0;padding-left:20px;display:grid;gap:6px;max-width:78ch}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:#fff;padding:9px 16px;border-radius:8px;font-size:14px;z-index:20}
+.welcome{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:28px;display:grid;gap:14px}
+.welcome h2{margin:0;font-size:22px;letter-spacing:-.01em}
+.newform{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;align-items:end}
+@media (prefers-reduced-motion:no-preference){.blk i span{transition:width .25s}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Opportunity <span>Compass</span></h1>
+      <div class="asof">Country guide reviewed 1 November 2026 · Review every quarter</div>
+    </div>
+  </header>
+  <nav aria-label="Views">
+    <a href="#score" data-view="score">Score an opportunity</a>
+    <a href="#method" data-view="method">How the score works</a>
+    <a href="#countries" data-view="countries">Country priority guide</a>
+  </nav>
+
+  <section class="view" id="v-score">
+    <div class="layout">
+      <aside class="opps" aria-label="Opportunities">
+        <div id="opplist"></div>
+        <div class="tools">
+          <button class="btn primary" type="button" id="add">Add opportunity</button>
+        </div>
+      </aside>
+      <div class="sheet" id="sheet"></div>
+    </div>
+  </section>
+
+  <section class="view" id="v-method" hidden></section>
+  <section class="view" id="v-countries" hidden></section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+/* ---------- The rulebook ---------- */
+const RULES_VERSION='Rules v3 · country guide reviewed 1 November 2026';
+const SRC={
+  gsf:'https://www.khaama.com/qatar-humanitarian-support-afghanistan/',
+  afg:'https://www.ariananews.af/qatar-reaffirms-commitment-to-supporting-dialogue-and-engagement-on-afghanistan/',
+  syr:'https://mofa.gov.qa/en/qatar/latest-articles/latest-news/details/2025/12/07/minister-of-state-at-ministry-of-foreign-affairs--qatar-has-maintained-consistent-and-supportive-stance-toward-syrian-people',
+  sdn:'https://mofa.gov.qa/en/qatar/latest-articles/latest-news/details/2026/02/26/qatar-reiterates-its-firm-stance--unwavering-support-for-unity--territorial-integrity-of-sudan',
+  som:'https://thepeninsulaqatar.com/article/01/10/2026/qatar-reaffirms-support-for-somalia-at-un-human-rights-council',
+  lbnqe:'https://www.gulf-times.com/article/718295/business/qatarenergy-acquires-interest-in-new-exploration-block-offshore-lebanon/amp',
+  qffd:'https://darpe.me/aid-entries/qatar-fund-for-development/',
+  jor:'https://www.qatarfund.org.qa/project/qatar-fund-for-development-signs-a-memorandum-of-understanding-with-the-ministry-of-higher-education-and-scientific-research-in-the-sisterly-hashemite-kingdom-of-jordan-to-develop-and-strengthen-the-e/',
+  ldc:'https://qna.org.qa/en/News-Area/News/2026-10/27/qffd-advances-global-development-finance-agenda-at-world-investment-forum-2026',
+  roh:'https://www.qatar-tribune.com/article/186571/nation/qffd-signs-deals-worth-qr192-billion-to-support-humanitarian-development-drives-across-world',
+  bra:'https://www.semafor.com/article/10/09/2026/qatarenergy-wins-brazil-energy-concession',
+  uru:'https://www.agbi.com/oil-and-gas/2026/05/qatarenergy-invests-in-uruguay-offshore-blocks/',
+  eco:'https://www.ecofinagency.com/news-industry/0610-49308-qatarenergy-acquires-27-stake-in-egypt-s-north-cleopatra-offshore-block',
+  nam:'https://invest-africa-energy.com/news/global-capital-connections-gulf-capital-buying-africas-energy-future',
+  sur:'https://www.offshore-technology.com/news/qatarenergy-suriname-block-acquisition/',
+  guy:'https://oilprice.com/Company-News/QatarEnergy-Signs-Guyana-Production-Sharing-Agreement.html',
+  qear:'https://www.qatarenergy.qa/en/MediaCenter/Publications/%E2%80%8BQatarEnergy%20Annual%20Review%202024.pdf',
+  cyp:'https://www.offshore-mag.com/regional-reports/middle-east/news/55380051/qatarenergy-qatarenergy-enters-exploration-offshore-uruguay-joins-egypt-cyprus-gas-studies',
+  irq:'https://gulfbusiness.com/qatarenergy-invest-in-totalenergies-iraq-project/',
+  lbnpow:'https://cyprus-mail.com/2026/10/21/qatar-plans-2-power-plants-20-year-gas-deal-for-lebanon',
+  moz:'https://www.offshore-energy.biz/qatar-petroleum-buys-into-enis-offshore-block-in-mozambique/',
+  ken:'https://www.offshore-energy.biz/qatar-petroleum-buys-into-offshore-blocks-in-kenya/',
+  civ:'https://jpt.spe.org/qatar-petroleum-acquire-two-exploration-blocks-cote-divoire'
+};
+const TIERS={
+  1:{pts:20,rule:'Qatar mediates or leads direct state engagement there, and MOFA has named education there in 2025 or 2026'},
+  2:{pts:14,rule:'Named in MOFA crisis statements in 2026, or a country where QatarEnergy holds, has announced or has entered an investment'},
+  3:{pts:8,rule:'QFFD priority geography (least developed, fragile or refugee-hosting) that is on neither the MOFA nor the QatarEnergy list'},
+  4:{pts:3,rule:'Middle-income country with no Qatari crisis framing or QatarEnergy investment'},
+  5:{pts:0,rule:'High-income country with no Qatari crisis framing or QatarEnergy investment'}
+};
+const GROUPS=[
+  {id:'mofa1',label:'Tier 1 · MOFA priority'},
+  {id:'mofa2',label:'Tier 2 · MOFA crisis statements'},
+  {id:'qe',label:'Tier 2 · QatarEnergy active investment'},
+  {id:'qe2',label:'Tier 2 · QatarEnergy announced or earlier entry'},
+  {id:'qffd',label:'Tier 3 · QFFD priority'},
+  {id:'other',label:'Tiers 4 and 5 · Other'}
+];
+const CONTEXTS=[
+  {id:'gaza',g:'mofa1',name:'Gaza',tier:1,basis:'Co-mediator of the ceasefire. Named at the Global Security Forum, October 2026. EAA and QFFD completed 100 learning spaces in May 2026.',src:SRC.gsf},
+  {id:'afg',g:'mofa1',name:'Afghanistan',tier:1,basis:'Qatar hosts dialogue on Afghanistan. MOFA statement in Geneva, 7 September 2026: education for children and girls stays a priority.',src:SRC.afg},
+  {id:'syr',g:'mofa1',name:'Syria',tier:1,qe:true,basis:'MOFA, December 2025: direct engagement with the Syrian government through EAA and QFFD. Named again October 2026. QatarEnergy signed an offshore exploration MoU with TotalEnergies and ConocoPhillips in May 2026.',src:SRC.syr,src2:SRC.cyp},
+  {id:'sdn',g:'mofa2',name:'Sudan',tier:2,basis:'MOFA statement at the Human Rights Council, February 2026. Named at the Global Security Forum, October 2026.',src:SRC.sdn},
+  {id:'lbn',g:'mofa2',name:'Lebanon',tier:2,qe:true,basis:'Named at the Global Security Forum, October 2026. QatarEnergy holds 30% of an offshore exploration block, and a draft plan of October 2026 has QatarEnergy supplying LNG for 20 years to two new power plants.',src:SRC.gsf,src2:SRC.lbnqe},
+  {id:'som',g:'mofa2',name:'Somalia',tier:2,basis:'Named at the Global Security Forum, October 2026. Human Rights Council statement, 1 October 2026.',src:SRC.som},
+  {id:'wb',g:'mofa2',name:'West Bank and East Jerusalem',tier:2,basis:'Covered by Qatar’s Palestine statements, with less education focus than Gaza in 2026.',src:''},
+  {id:'bra',g:'qe',qe:true,name:'Brazil',tier:2,basis:'QatarEnergy won 30% of seven Ceará Basin exploration blocks with Petrobras, October 2026.',src:SRC.bra},
+  {id:'uru',g:'qe',qe:true,name:'Uruguay',tier:2,basis:'QatarEnergy acquired interests in three offshore exploration blocks, May 2026.',src:SRC.uru},
+  {id:'ago',g:'qe',qe:true,name:'Angola',tier:2,basis:'QatarEnergy agreed to take 30% of two blocks, reported October 2026.',src:SRC.bra},
+  {id:'cog',g:'qe',qe:true,name:'Republic of Congo',tier:2,basis:'QatarEnergy holds 35% of the Nzombo offshore block and shared in a discovery.',src:SRC.eco},
+  {id:'nam',g:'qe',qe:true,name:'Namibia',tier:2,basis:'QatarEnergy holds 35% of Block 2913B, the Venus discovery, with TotalEnergies; stakes raised November 2024.',src:SRC.nam},
+  {id:'zaf',g:'qe',qe:true,name:'South Africa',tier:2,basis:'QatarEnergy holds 24% of offshore Block 3B/4B.',src:SRC.eco},
+  {id:'mrt',g:'qe',qe:true,name:'Mauritania',tier:2,basis:'QatarEnergy holds 40% of Block C-10.',src:SRC.eco},
+  {id:'egy',g:'qe',qe:true,name:'Egypt',tier:2,basis:'QatarEnergy agreed 27% of North Cleopatra in October 2025, alongside blocks with Chevron and ExxonMobil.',src:SRC.eco},
+  {id:'sur',g:'qe',qe:true,name:'Suriname',tier:2,basis:'QatarEnergy acquired a stake in an offshore block from Chevron.',src:SRC.sur},
+  {id:'guy',g:'qe',qe:true,name:'Guyana',tier:2,basis:'QatarEnergy signed a production sharing agreement for an offshore exploration block with TotalEnergies and PETRONAS.',src:SRC.guy},
+  {id:'irq',g:'qe',qe:true,name:'Iraq',tier:2,basis:'QatarEnergy has producing assets (about 60,000 barrels of oil equivalent a day) and 50% of a 1.25 GW solar project in Basra. Also a QFFD coverage country.',src:SRC.qear,src2:SRC.irq},
+  {id:'cyp',g:'qe',qe:true,name:'Cyprus',tier:2,basis:'QatarEnergy holds discovered gas awaiting development; MoU with ExxonMobil and Egypt to develop it, May 2026.',src:SRC.cyp},
+  {id:'arg',g:'qe',qe:true,name:'Argentina',tier:2,basis:'Shown in QatarEnergy’s international upstream portfolio, Annual Review 2024.',src:SRC.qear},
+  {id:'mex',g:'qe',qe:true,name:'Mexico',tier:2,basis:'Shown in QatarEnergy’s international upstream portfolio, Annual Review 2024.',src:SRC.qear},
+  {id:'can',g:'qe',qe:true,name:'Canada',tier:2,basis:'Shown in QatarEnergy’s international upstream portfolio, Annual Review 2024.',src:SRC.qear},
+  {id:'usa',g:'qe',qe:true,name:'United States',tier:2,basis:'Golden Pass LNG in Texas and 49% of the Golden Triangle Polymers plant, Annual Review 2024.',src:SRC.qear},
+  {id:'moz',g:'qe2',qe:true,name:'Mozambique',tier:2,basis:'Qatar Petroleum bought into Eni offshore blocks in 2019. Not shown in the 2024 Annual Review excerpts read; confirm current status.',src:SRC.moz},
+  {id:'ken',g:'qe2',qe:true,name:'Kenya',tier:2,basis:'Qatar Petroleum bought into offshore blocks in 2021. Confirm current status.',src:SRC.ken},
+  {id:'civ',g:'qe2',qe:true,name:'Côte d’Ivoire',tier:2,basis:'Qatar Petroleum took two exploration blocks with Total in 2020. Confirm current status.',src:SRC.civ},
+  {id:'yem',g:'qffd',name:'Yemen',tier:3,basis:'In QFFD’s coverage list. Not on MOFA’s October 2026 crisis list.',src:SRC.qffd},
+  {id:'jor',g:'qffd',name:'Jordan',tier:3,basis:'Refugee-hosting. QFFD and Jordan’s higher education ministry signed an MoU in 2021.',src:SRC.jor},
+  {id:'roh',g:'qffd',name:'Rohingya (Bangladesh, Malaysia)',tier:3,basis:'QFFD funded support for Rohingya refugees in Malaysia in July 2025.',src:SRC.roh},
+  {id:'ldc',g:'qffd',name:'Other least developed country',tier:3,basis:'QFFD restated its focus on the 44 least developed countries on 27 October 2026.',src:SRC.ldc},
+  {id:'mic',g:'other',name:'Other middle-income country',tier:4,basis:'No Qatari crisis framing or QatarEnergy investment.',src:''},
+  {id:'hic',g:'other',name:'High-income country',tier:5,basis:'No Qatari crisis framing or QatarEnergy investment.',src:''}
+];
+const GATES=[
+  {id:'g1',t:'Within Al Fakhoora’s mandate',d:'Higher education or TVET for conflict-affected or marginalised youth'},
+  {id:'g2',t:'Partner passes EAA due diligence',d:'Completed, or scheduled to complete before signing'},
+  {id:'g3',t:'No legal or sanctions barrier to transferring funds',d:'Confirmed by finance or legal'}
+];
+const EVIDENCE=[
+  {id:'b1',pts:5,t:'Written request to EAA',d:'From MOFA, QFFD or the country’s ministry, in the last 12 months'},
+  {id:'b2',pts:3,t:'Ambassador or minister-level meeting',d:'Between Qatar and the country, with education or youth on the agenda, in the last 12 months'},
+  {id:'b3',pts:3,t:'Qatar signed or pledged education support there',d:'In the last 12 months'},
+  {id:'b4',pts:2,t:'Named in an official MOFA or QFFD statement',d:'In the last 6 months'},
+  {id:'b5',pts:2,t:'A signing moment fits in the next 6 months',d:'Doha Forum, UNGA, a donor conference, a ministerial visit'}
+];
+const EV_CAP=10;
+const BLOCKS=[
+  {id:'C',name:'QFFD fit',max:15,items:[
+    {id:'c1',pts:4,t:'Government counterpart',y:'Ministry MoU or letter signed',p:'Ministry engaged in talks'},
+    {id:'c2',pts:3,t:'EAA role',y:'EAA implements or manages the funds',p:'EAA co-implements with another body'},
+    {id:'c3',pts:4,t:'Partner already funded by QFFD',y:'Active QFFD agreement with the partner',p:'Past QFFD agreement only'},
+    {id:'c4',pts:4,t:'No overlap with QFFD’s own programmes',y:'No similar Qatar Scholarships offer for this group',p:'Overlap for part of the cohort',n:'The same offer already exists'}]},
+  {id:'D',name:'Need',max:15,items:[
+    {id:'d1',pts:5,t:'Higher education access for this group',y:'Universities closed or destroyed, or the group barred (UN or ministry data)',p:'Severely disrupted'},
+    {id:'d2',pts:5,t:'Refugees, displaced, evacuees or under occupation',y:'75% or more of places',p:'25% to 74% of places'},
+    {id:'d3',pts:3,t:'Women and girls',y:'50% or more of places reserved',p:'30% to 49% reserved'},
+    {id:'d4',pts:2,t:'Inclusion',y:'Places reserved for students with disabilities or orphans',p:'Eligible, with no reserved places'}]},
+  {id:'F',name:'Delivery',max:10,items:[
+    {id:'f1',pts:3,t:'Al Fakhoora track record with this partner',y:'A completed project',p:'An ongoing project only'},
+    {id:'f2',pts:3,t:'Enrolment speed',y:'Students enrol within one academic year of signing',p:'Within two academic years'},
+    {id:'f3',pts:2,t:'Wraparound support',y:'Three or more of: mentoring, career services, alumni network, psychosocial support',p:'One or two of them'},
+    {id:'f4',pts:2,t:'Exit plan',y:'A named body takes over costs, in writing',p:'Takeover under discussion'}]}
+];
+const RISKS=[
+  {id:'r1',pts:6,t:'Access to the delivery site is blocked today',d:'Crossings closed, visas refused, campus unreachable'},
+  {id:'r2',pts:5,t:'This partner had an EAA project suspended or terminated',d:'Any time in the past'},
+  {id:'r3',pts:4,t:'Active hostilities in the delivery area',d:'In the last 3 months'},
+  {id:'r4',pts:3,t:'Funding depends on one donor decision not yet made',d:'No written commitment yet'},
+  {id:'r5',pts:3,t:'Banking or currency restrictions on transfers',d:'Delays or extra approvals expected'}
+];
+const RISK_CAP=15;
+const MODALITIES=['TVET diploma or certificate','Bachelor’s (BA or BSc)','Mix of bachelor’s and TVET','Bachelor’s in the region','Bachelor’s in Qatar','Bachelor’s abroad','Master’s abroad','Online or hybrid degree'];
+const BAND_COST=[[0.5,10],[0.75,8],[1.0,6],[1.25,4],[1.5,2]];
+const BAND_LEV=[[3,10],[2,8],[1,6],[0.5,4]];
+const BAND_STU=[[2000,6],[1000,5],[500,4],[250,3],[100,2],[25,1]];
+const BAND_COMP=[[90,4],[80,3],[70,2],[60,1]];
+
+/* ---------- State ---------- */
+const KEY='af-compass-v3';
+const blankOpp=(id,name,extra={})=>({id,name,country:'',gates:{},ev:{},ans:{},risk:{},num:{eaa:'',other:'',students:'',comp:'',modality:'',bench:''},prep:'',date:'',rec:'',...extra});
+let S={opps:[],sel:null,bench:{},adding:true};
+try{const v=JSON.parse(localStorage.getItem(KEY)||'null');if(v&&Array.isArray(v.opps))S={...S,...v,adding:!v.opps.length}}catch(e){}
+try{const old=JSON.parse(localStorage.getItem('af-compass-v2')||'null');if(old&&old.bench&&!Object.keys(S.bench).length)S.bench=old.bench;localStorage.removeItem('af-compass-v2');localStorage.removeItem('af-compass-v1')}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify({opps:S.opps,sel:S.sel,bench:S.bench}))}catch(e){}};
+const cur=()=>S.opps.find(o=>o.id===S.sel)||null;
+
+/* ---------- Arithmetic ---------- */
+const num=v=>{const n=parseFloat(String(v).replace(/,/g,''));return isFinite(n)?n:null};
+const ansPts=(pts,a)=>a==='yes'?pts:a==='partly'?pts/2:a==='no'?0:null;
+const bandDown=(x,b)=>{for(const[t,p]of b)if(x<=t)return p;return 0};
+const bandUp=(x,b)=>{for(const[t,p]of b)if(x>=t)return p;return 0};
+function benchFor(o){return num(o.num.bench)??num(S.bench[o.num.modality])}
+function numbers(o){
+  const n=o.num,eaa=num(n.eaa),oth=num(n.other),stu=num(n.students),comp=num(n.comp),b=benchFor(o);
+  const r={};
+  if(eaa!=null&&stu&&comp&&b){const c=eaa/(stu*comp/100);r.cost={pts:bandDown(c/b,BAND_COST),c,ratio:c/b,b}}else r.cost={pts:null,b};
+  if(eaa!=null&&oth!=null){const l=eaa===0?Infinity:oth/eaa;r.lev={pts:eaa===0?(oth>0?10:0):(l>0?Math.max(bandUp(l,BAND_LEV),2):0),l}}else r.lev={pts:null};
+  r.stu=stu!=null?{pts:bandUp(stu,BAND_STU),v:stu}:{pts:null};
+  r.comp=comp!=null?{pts:bandUp(comp,BAND_COMP),v:comp}:{pts:null};
+  return r;
+}
+function compute(o){
+  const out={blocks:{},assessed:0};
+  const t=CONTEXTS.find(c=>c.id===o.country);
+  out.blocks.A={pts:t?TIERS[t.tier].pts:0,max:20};if(t)out.assessed+=20;
+  let e=0;EVIDENCE.forEach(x=>{const v=o.ev[x.id];if(v&&v.on&&String(v.src||'').trim())e+=x.pts});
+  out.blocks.B={pts:Math.min(EV_CAP,e),max:EV_CAP};out.assessed+=EV_CAP;
+  BLOCKS.forEach(b=>{let p=0;b.items.forEach(i=>{const v=ansPts(i.pts,o.ans[i.id]);if(v!=null){p+=v;out.assessed+=i.pts}});out.blocks[b.id]={pts:p,max:b.max}});
+  const n=numbers(o);let ep=0;[['cost',10],['lev',10],['stu',6],['comp',4]].forEach(([k,m])=>{if(n[k].pts!=null){ep+=n[k].pts;out.assessed+=m}});
+  out.blocks.E={pts:ep,max:30};out.num=n;
+  let r=0;RISKS.forEach(x=>{if(o.risk[x.id])r+=x.pts});out.blocks.R={pts:-Math.min(RISK_CAP,r),max:RISK_CAP};
+  const sum=Object.values(out.blocks).reduce((s,v)=>s+v.pts,0);
+  out.total=Math.max(0,Math.round(sum*2)/2);
+  out.complete=Math.round(out.assessed);
+  const g=GATES.map(x=>o.gates[x.id]);out.gateFail=g.includes('no');out.gatePending=g.some(x=>x!=='yes');
+  if(out.gateFail)out.total=0;
+  out.band=out.gateFail?['Not eligible','p-stop']:out.total>=70?['Pursue','p-pursue']:out.total>=55?['Shape','p-shape']:out.total>=40?['Watch','p-watch']:['Decline','p-decline'];
+  out.final=!out.gateFail&&!out.gatePending&&out.complete>=100;
+  return out;
+}
+const fmt=n=>n==null?'':Math.round(n).toLocaleString('en-US');
+const fp=p=>p==null?'–':(Number.isInteger(p)?String(p):p.toFixed(1));
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const BLOCK_NAMES={A:'Country priority',B:'Verified evidence',C:'QFFD fit',D:'Need',E:'The numbers',F:'Delivery',R:'Risk'};
+
+/* ---------- Rendering ---------- */
+function countryOptions(sel){
+  return `<option value="">Choose a context</option>`+GROUPS.map(g=>`<optgroup label="${g.label}">${CONTEXTS.filter(c=>c.g===g.id).map(c=>`<option value="${c.id}" ${sel===c.id?'selected':''}>${esc(c.name)} · ${TIERS[c.tier].pts} pts</option>`).join('')}</optgroup>`).join('');
+}
+function renderList(){
+  const el=document.getElementById('opplist');
+  if(!S.opps.length){el.innerHTML='<div class="empty">No opportunities yet.</div>';return}
+  el.innerHTML=S.opps.map(o=>{const r=compute(o);
+    return `<button type="button" class="opp" data-sel="${o.id}" aria-current="${o.id===S.sel&&!S.adding}"><span class="nm">${esc(o.name||'Untitled')}</span><span class="sc">${r.gateFail?'✕':fp(r.total)}<span style="color:#9aa0ab">·${r.complete}%</span></span></button>`}).join('');
+}
+function renderNew(){
+  document.getElementById('sheet').innerHTML=`<div class="welcome">
+   <h2>${S.opps.length?'Add an opportunity':'Score your first opportunity'}</h2>
+   <p class="lead">Name it and pick where most beneficiaries come from. The country list groups MOFA priorities, QatarEnergy investment countries and QFFD priorities by tier.</p>
+   <form class="newform" id="newform">
+    <label class="f">Opportunity name<input type="text" id="new-name" required></label>
+    <label class="f">Beneficiaries’ origin<select id="new-country">${countryOptions('')}</select></label>
+    <label class="f">Modality<select id="new-mod"><option value="">Choose</option>${MODALITIES.map(m=>`<option>${m}</option>`).join('')}</select></label>
+    <div style="display:flex;gap:8px"><button class="btn primary" type="submit">Create and start scoring</button>${S.opps.length?'<button class="btn" type="button" id="cancelnew">Cancel</button>':''}</div>
+   </form></div>`;
+  document.getElementById('new-name').focus();
+}
+function seg(name,cur,opts){return `<div class="seg" role="radiogroup">${opts.map(([v,l])=>`<input type="radio" name="${name}" id="${name}-${v}" value="${v}" ${cur===v?'checked':''}><label for="${name}-${v}">${l}</label>`).join('')}</div>`}
+function renderSheet(){
+  if(S.adding||!cur()){S.adding=true;renderList();renderNew();return}
+  const o=cur(),id=o.id;
+  const h=[];
+  h.push(`<div class="scorebar" id="scorebar"></div>`);
+  h.push(`<div class="card"><div class="grid2">
+    <label class="f">Opportunity name<input type="text" id="${id}-name" data-f="name" value="${esc(o.name)}"></label>
+    <label class="f">Prepared by<input type="text" id="${id}-prep" data-f="prep" value="${esc(o.prep)}"></label>
+    <label class="f">Assessment date<input type="date" id="${id}-date" data-f="date" value="${esc(o.date)}"></label></div></div>`);
+  h.push(`<div class="card"><h2>Gates <span class="of">must all be Yes</span></h2><p class="lead">A single No stops the opportunity, whatever it scores.</p>
+   ${GATES.map(g=>`<fieldset class="q"><legend>${g.t}</legend><p class="def">${g.d}</p><div class="ctl">${seg(`${id}-${g.id}`,o.gates[g.id],[['yes','Yes'],['no','No'],['open','Not checked']])}</div></fieldset>`).join('')}</div>`);
+  h.push(`<div class="card"><h2>A · Country priority <span class="of" id="of-A"></span></h2>
+   <p class="lead">Set by the country guide, not by judgment. Pick where most beneficiaries come from, not where they study.</p>
+   <label class="f">Beneficiaries’ origin<select id="${id}-country" data-f="country">${countryOptions(o.country)}</select></label>
+   <div class="tierbox" id="tierbox"></div></div>`);
+  h.push(`<div class="card"><h2>B · Verified evidence <span class="of" id="of-B"></span></h2>
+   <p class="lead">Each signal counts once you name its source. Add the date when you have it. The block caps at ${EV_CAP} points.</p>
+   ${EVIDENCE.map(x=>{const v=o.ev[x.id]||{};return `<div class="ev"><input type="checkbox" id="${id}-${x.id}-on" data-ev="${x.id}" data-k="on" ${v.on?'checked':''}>
+     <label class="txt" for="${id}-${x.id}-on">${x.t}<small>${x.d}</small></label><span class="pts">+${x.pts}</span>
+     <div class="src"><input type="date" id="${id}-${x.id}-date" data-ev="${x.id}" data-k="date" value="${esc(v.date)}" aria-label="Date of evidence"><input type="text" id="${id}-${x.id}-src" data-ev="${x.id}" data-k="src" value="${esc(v.src)}" placeholder="Source: link, letter reference or meeting note" aria-label="Source"></div>
+     <span class="warn" id="${id}-${x.id}-warn" style="grid-column:2 / span 2"></span></div>`}).join('')}</div>`);
+  BLOCKS.forEach(b=>{
+    h.push(`<div class="card"><h2>${b.id} · ${b.name} <span class="of" id="of-${b.id}"></span></h2><p class="lead">Yes earns full points, Partly earns half, No earns none.</p>
+    ${b.items.map(i=>`<fieldset class="q"><legend>${i.t}</legend><p class="def"><b>Yes:</b> ${i.y}. <b>Partly:</b> ${i.p}.${i.n?` <b>No:</b> ${i.n}.`:''}</p>
+     <div class="ctl">${seg(`${id}-${i.id}`,o.ans[i.id],[['yes','Yes'],['partly','Partly'],['no','No']])}<span class="pts" id="pt-${i.id}"></span></div></fieldset>`).join('')}</div>`);
+    if(b.id==='D')h.push(numbersCard(o));
+  });
+  h.push(`<div class="card"><h2>R · Risk deductions <span class="of" id="of-R"></span></h2><p class="lead">Tick only what is true today. Deductions cap at ${RISK_CAP} points.</p>
+   ${RISKS.map(x=>`<div class="ev"><input type="checkbox" id="${id}-${x.id}" data-risk="${x.id}" ${o.risk[x.id]?'checked':''}><label class="txt" for="${id}-${x.id}">${x.t}<small>${x.d}</small></label><span class="pts">−${x.pts}</span></div>`).join('')}</div>`);
+  h.push(`<div class="card export"><h2>Justification and export</h2>
+   <p class="lead">The one-page PDF carries the score, the reasons, and a section each for finance, legal and management. Your recommendation leads the page; with none, the page writes its summary from the scores.</p>
+   <label class="f">Recommendation<textarea id="${id}-rec" data-f="rec">${esc(o.rec)}</textarea></label>
+   <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn dark" type="button" id="pdf">Export one-page PDF</button><button class="btn" type="button" id="copy">Copy scorecard as text</button><button class="btn" type="button" id="del">Remove this opportunity</button></div>
+   <span class="note" id="pdfnote"></span></div>`);
+  document.getElementById('sheet').innerHTML=h.join('');
+  refresh();
+}
+function numbersCard(o){const id=o.id,n=o.num;
+  return `<div class="card"><h2>E · The numbers <span class="of" id="of-E"></span></h2>
+  <p class="lead">Points come from fixed bands. Use figures from the proposal and the finance workbook, in US dollars, over the whole programme.</p>
+  <div class="grid2">
+   <label class="f">EAA contribution (USD)<input type="number" min="0" id="${id}-eaa" data-n="eaa" value="${esc(n.eaa)}"></label>
+   <label class="f">Funding from others (USD)<input type="number" min="0" id="${id}-other" data-n="other" value="${esc(n.other)}"></label>
+   <label class="f">Students funded<input type="number" min="0" id="${id}-students" data-n="students" value="${esc(n.students)}"></label>
+   <label class="f">Partner’s completion rate, last cohort (%)<input type="number" min="0" max="100" id="${id}-comp" data-n="comp" value="${esc(n.comp)}"></label>
+   <label class="f">Modality<select id="${id}-modality" data-n="modality"><option value="">Choose</option>${MODALITIES.map(m=>`<option ${n.modality===m?'selected':''}>${m}</option>`).join('')}</select></label>
+   <label class="f">Benchmark cost per graduate (USD)<input type="number" min="0" id="${id}-bench" data-n="bench" value="${esc(n.bench)}"></label>
+  </div>
+  <div id="numcalc"></div></div>`}
+function refresh(){
+  const o=cur();if(!o){renderList();return}
+  const r=compute(o),id=o.id;
+  const B=['A','B','C','D','E','F','R'],NM={A:'Country',B:'Evidence',C:'QFFD fit',D:'Need',E:'Numbers',F:'Delivery',R:'Risk'};
+  document.getElementById('scorebar').innerHTML=`<div class="big">${fp(r.total)}<small> / 100</small></div>
+   <div class="meta"><div class="pills"><span class="pill ${r.band[1]}">${r.band[0]}</span>${r.final?'':`<span class="pill p-prov">${r.gateFail?'Gate failed':'Provisional'}</span>`}<span class="complete">${r.complete} of 100 points assessed${r.gatePending&&!r.gateFail?' · gates not all checked':''}</span></div>
+   <div class="blocks">${B.map(k=>{const b=r.blocks[k],w=b.max?Math.abs(b.pts)/b.max*100:0;return `<div class="blk ${k==='R'?'neg':''}">${NM[k]}<b>${fp(b.pts)}${k==='R'?'':' / '+b.max}</b><i><span style="width:${w}%"></span></i></div>`}).join('')}</div></div>`;
+  B.forEach(k=>{const el=document.getElementById('of-'+k);if(el){const b=r.blocks[k];el.innerHTML=k==='R'?`<b>${fp(b.pts)}</b> of −${b.max} max`:`<b>${fp(b.pts)}</b> of ${b.max}`}});
+  const t=CONTEXTS.find(c=>c.id===o.country);
+  document.getElementById('tierbox').innerHTML=t?`<b>Tier ${t.tier}: ${TIERS[t.tier].pts} points.</b><span>${TIERS[t.tier].rule}.</span><span>${t.qe?'<span class="tag qe">QatarEnergy</span>':''}${esc(t.basis)} ${t.src?`<a href="${t.src}" target="_blank" rel="noopener">Source</a>`:''}${t.src2?` · <a href="${t.src2}" target="_blank" rel="noopener">QatarEnergy source</a>`:''}</span>`:'<span>No context chosen yet: 0 of 20 points assessed.</span>';
+  EVIDENCE.forEach(x=>{const v=o.ev[x.id]||{},w=document.getElementById(`${id}-${x.id}-warn`);w.textContent=v.on&&!String(v.src||'').trim()?'Name the source, or this signal earns nothing.':''});
+  BLOCKS.forEach(b=>b.items.forEach(i=>{const el=document.getElementById('pt-'+i.id),p=ansPts(i.pts,o.ans[i.id]);el.textContent=p==null?`– / ${i.pts}`:`${fp(p)} / ${i.pts}`;el.className='pts'+(p==null?' none':'')}));
+  const n=r.num,b=benchFor(o),benchEl=document.getElementById(id+'-bench');
+  if(benchEl)benchEl.placeholder=S.bench[o.num.modality]?`Median: ${fmt(num(S.bench[o.num.modality]))}`:'';
+  const line=(title,how,pts,max)=>`<div class="calc"><span>${title}</span><span class="how">${how}</span><span class="pts ${pts==null?'none':''}">${pts==null?'–':fp(pts)} / ${max}</span></div>`;
+  document.getElementById('numcalc').innerHTML=
+   line('Cost per completing graduate',n.cost.pts==null?'Needs the EAA contribution, students, completion rate and a benchmark (set medians under How the score works).':`${fmt(num(o.num.eaa))} ÷ (${fmt(num(o.num.students))} × ${num(o.num.comp)}%) = ${fmt(n.cost.c)} USD per graduate, ${(n.cost.ratio*100).toFixed(0)}% of the ${fmt(b)} benchmark`,n.cost.pts,10)+
+   line('Co-funding leverage',n.lev.pts==null?'Needs the EAA contribution and funding from others.':(num(o.num.eaa)===0?'EAA manages only, with no EAA funds':`${fmt(num(o.num.other))} ÷ ${fmt(num(o.num.eaa))} = ${n.lev.l.toFixed(2)} from others per EAA dollar`),n.lev.pts,10)+
+   line('Students reached',n.stu.pts==null?'Needs the number of students.':`${fmt(n.stu.v)} students`,n.stu.pts,6)+
+   line('Expected completion',n.comp.pts==null?'Needs the partner’s completion rate.':`${n.comp.v}% in the partner’s last cohort`,n.comp.pts,4);
+  save();renderList();
+}
+function scorecard(){const o=cur(),r=compute(o),t=CONTEXTS.find(c=>c.id===o.country),L=[];
+  L.push(`${o.name}`,`Score ${fp(r.total)} / 100 · ${r.band[0]}${r.final?'':' (provisional)'} · ${r.complete} of 100 points assessed`,'');
+  L.push('Gates: '+GATES.map(g=>`${g.t}: ${o.gates[g.id]==='yes'?'Yes':o.gates[g.id]==='no'?'No':'Not checked'}`).join('; '));
+  L.push(`A Country: ${t?`${t.name}, Tier ${t.tier}`:'not set'} = ${r.blocks.A.pts}`);
+  L.push(`B Evidence = ${r.blocks.B.pts}`);EVIDENCE.forEach(x=>{const v=o.ev[x.id];if(v&&v.on)L.push(`  +${x.pts} ${x.t} (${v.date||'no date'}): ${v.src||'no source'}`)});
+  BLOCKS.forEach(b=>{L.push(`${b.id} ${b.name} = ${fp(r.blocks[b.id].pts)}`);b.items.forEach(i=>L.push(`  ${i.t}: ${o.ans[i.id]||'unanswered'} (${fp(ansPts(i.pts,o.ans[i.id]))}/${i.pts})`))});
+  const n=r.num;L.push(`E Numbers = ${fp(r.blocks.E.pts)} (cost ${fp(n.cost.pts)}, leverage ${fp(n.lev.pts)}, students ${fp(n.stu.pts)}, completion ${fp(n.comp.pts)})`);
+  L.push(`R Risk = ${fp(r.blocks.R.pts)}`);RISKS.forEach(x=>{if(o.risk[x.id])L.push(`  -${x.pts} ${x.t}`)});
+  return L.join('\n')}
+
+/* ---------- One-page PDF ---------- */
+const CP1252='€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ';
+function pdfText(s){return String(s??'').replace(/[−‐‑]/g,'-').replace(/[   ]/g,' ').replace(/[^\x20-\x7E¡-ÿ\n]/g,c=>CP1252.includes(c)?c:'')}
+function autoSummary(o,r){
+  const t=CONTEXTS.find(c=>c.id===o.country),parts=[];
+  const pct=k=>r.blocks[k].max?r.blocks[k].pts/r.blocks[k].max:0;
+  if(t)parts.push(`${t.name} sits in Tier ${t.tier} of Qatar’s priority guide${t.qe&&t.g==='qe'?' as a QatarEnergy investment country':''}.`);
+  const strong=['C','D','E','F'].filter(k=>pct(k)>=0.75).map(k=>BLOCK_NAMES[k].toLowerCase());
+  if(strong.length)parts.push(`It scores strongly on ${strong.join(', ').replace(/, ([^,]*)$/,' and $1')}.`);
+  if(r.blocks.B.pts)parts.push(`${r.blocks.B.pts} points of verified evidence support the timing.`);
+  if(r.num.lev.pts!=null&&isFinite(r.num.lev.l)&&r.num.lev.l>0)parts.push(`Others add ${r.num.lev.l.toFixed(2)} for every EAA dollar.`);
+  return parts.join(' ');
+}
+function strengthsAndWatch(o,r){
+  const s=[],w=[];const pct=k=>r.blocks[k].max?r.blocks[k].pts/r.blocks[k].max:0;
+  ['A','B','C','D','E','F'].forEach(k=>{const p=pct(k);if(p>=0.75)s.push(`${BLOCK_NAMES[k]}: ${fp(r.blocks[k].pts)} of ${r.blocks[k].max}`);else if(p<0.5)w.push(`${BLOCK_NAMES[k]}: ${fp(r.blocks[k].pts)} of ${r.blocks[k].max}`)});
+  RISKS.forEach(x=>{if(o.risk[x.id])w.push(`Risk: ${x.t.charAt(0).toLowerCase()+x.t.slice(1)}`)});
+  GATES.forEach(g=>{if(o.gates[g.id]!=='yes')w.push(`Gate ${o.gates[g.id]==='no'?'failed':'not checked'}: ${g.t.charAt(0).toLowerCase()+g.t.slice(1)}`)});
+  return {s:s.slice(0,4),w:w.slice(0,4)};
+}
+function buildPDF(o){
+  const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:'mm',format:'a4'});
+  const r=compute(o),t=CONTEXTS.find(c=>c.id===o.country),n=r.num;
+  const RED=[211,39,55],INK=[22,24,29],MUT=[96,102,114],LINE=[224,227,233],SOFT=[245,246,248],TINT=[251,233,235],QE=[29,79,134];
+  const BANDC={'Pursue':[[227,242,234],[27,112,70]],'Shape':[[251,240,220],[143,86,0]],'Watch':[[236,238,242],[90,96,108]],'Decline':[[253,236,235],[180,35,24]],'Not eligible':[[253,236,235],[180,35,24]]};
+  const W=210,L=16,R=W-14,CW=R-L;
+  const tc=c=>doc.setTextColor(...c),fc=c=>doc.setFillColor(...c),dc=c=>doc.setDrawColor(...c);
+  const font=(sz,st='normal')=>{doc.setFont('helvetica',st);doc.setFontSize(sz)};
+  const txt=(s,x,y,o={})=>doc.text(Array.isArray(s)?s.map(pdfText):pdfText(s),x,y,o);
+  const wrap=(s,w,max)=>{let ls=doc.splitTextToSize(pdfText(s),w);if(max&&ls.length>max){ls=ls.slice(0,max);ls[max-1]=ls[max-1].replace(/\s*\S*$/,'')+'…'}return ls};
+  const label=(s,x,y,c=MUT,al)=>{font(6.5,'bold');tc(c);doc.setCharSpace(0.35);const u=pdfText(s.toUpperCase());txt(u,al==='right'?x-doc.getTextWidth(u)-0.35*(u.length-1):x,y);doc.setCharSpace(0)};
+  // edge and header
+  fc(RED);doc.rect(0,0,5,297,'F');
+  label('Al Fakhoora · Education Above All',L,15,RED);
+  label('Opportunity justification',R,15,MUT,'right');
+  font(7.5);tc(MUT);txt(o.date?new Date(o.date+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'',R,19.5,{align:'right'});
+  font(19,'bold');tc(INK);const tl=wrap(o.name||'Untitled opportunity',CW-40,2);txt(tl,L,25);
+  let y=25+tl.length*7.2+0.5;
+  font(8.5);tc(MUT);
+  const sub=[t?`${t.name} · Tier ${t.tier}${t.qe?' · QatarEnergy country':''}`:'Country not set',o.num.modality||'',o.prep?`Prepared by ${o.prep}`:''].filter(Boolean).join('   |   ');
+  txt(sub,L,y);y+=5;
+  dc(LINE);doc.setLineWidth(0.3);doc.line(L,y,R,y);y+=6;
+  // hero: ring + recommendation
+  const cx=L+19,cy=y+19,rad=15.5;
+  dc(LINE);doc.setLineWidth(2.6);doc.circle(cx,cy,rad,'S');
+  const frac=Math.max(0,Math.min(1,r.total/100));
+  if(frac>0){dc(r.gateFail?[180,35,24]:RED);doc.setLineCap('round');const steps=Math.max(2,Math.round(90*frac));let px=cx,py=cy-rad;for(let i=1;i<=steps;i++){const a=-Math.PI/2+2*Math.PI*frac*i/steps,nx=cx+rad*Math.cos(a),ny=cy+rad*Math.sin(a);doc.line(px,py,nx,ny);px=nx;py=ny}doc.setLineCap('butt')}
+  font(20,'bold');tc(INK);txt(fp(r.total),cx,cy+2.2,{align:'center'});
+  font(6.5);tc(MUT);txt('OUT OF 100',cx,cy+6.6,{align:'center'});
+  const bc=BANDC[r.band[0]];font(7.5,'bold');const bw=doc.getTextWidth(r.band[0].toUpperCase())+8;
+  fc(bc[0]);doc.roundedRect(cx-bw/2,cy+rad+4,bw,6,3,3,'F');tc(bc[1]);doc.setCharSpace(0.3);txt(r.band[0].toUpperCase(),cx,cy+rad+8.2,{align:'center'});doc.setCharSpace(0);
+  font(6.5);tc(MUT);txt(r.final?'Final assessment':`Provisional · ${r.complete}% assessed`,cx,cy+rad+14,{align:'center'});
+  // recommendation panel
+  const rx=L+44,rw=R-rx,ry=y-1,rh=46;
+  fc(TINT);doc.roundedRect(rx,ry,rw,rh,2.5,2.5,'F');fc(RED);doc.rect(rx,ry+3,1.2,rh-6,'F');
+  label(o.rec&&o.rec.trim()?'Recommendation':'Summary from the scores',rx+6,ry+7,RED);
+  font(9.5);tc(INK);const recText=(o.rec&&o.rec.trim())?o.rec.trim():autoSummary(o,r);
+  const rl=wrap(recText||' ',rw-12,8);doc.setLineHeightFactor(1.35);txt(rl,rx+6,ry+13);doc.setLineHeightFactor(1.15);
+  y=ry+rh+10;
+  // strengths and watch points
+  const sw=strengthsAndWatch(o,r),half=(CW-8)/2;
+  const bullets=(title,items,x,c,empty)=>{label(title,x,y,c);font(8.5);tc(INK);let yy=y+5;(items.length?items:[empty]).forEach(s=>{fc(c);doc.circle(x+1,yy-1.1,0.7,'F');tc(items.length?INK:MUT);const ls=wrap(s,half-6,1);txt(ls,x+4,yy);yy+=4.6});return yy};
+  const y1=bullets('Why proceed',sw.s,L,[27,112,70],'No block scores 75% or more yet');
+  const y2=bullets('Watch points',sw.w,L+half+8,[143,86,0],'None flagged');
+  y=Math.max(y1,y2)+3;
+  // score build-up
+  label('Score build-up',L,y);y+=4;
+  const rows=['A','B','C','D','E','F','R'];const lw=34,vw=16,bx=L+lw,bwid=CW-lw-vw;
+  rows.forEach(k=>{const b=r.blocks[k];font(8);tc(INK);txt(BLOCK_NAMES[k],L,y+2.6);
+    fc(SOFT);doc.roundedRect(bx,y,bwid,3.2,1.6,1.6,'F');
+    const f=b.max?Math.abs(b.pts)/b.max:0;if(f>0){fc(k==='R'?[180,35,24]:k==='A'&&t&&t.qe&&t.g==='qe'?QE:RED);doc.roundedRect(bx,y,Math.max(3.2,bwid*f),3.2,1.6,1.6,'F')}
+    font(8,'bold');tc(k==='R'&&b.pts<0?[180,35,24]:INK);txt(k==='R'?`${fp(b.pts)}`:`${fp(b.pts)} / ${b.max}`,R,y+2.6,{align:'right'});y+=5.4});
+  y+=3;
+  // three department columns
+  const colW=(CW-10)/3,cols=[L,L+colW+5,L+2*(colW+5)],top=y;
+  const colHead=(i,title)=>{fc(INK);doc.rect(cols[i],top,colW,0.8,'F');label(title,cols[i],top+5,INK)};
+  const kv=(i,yy,k,v,bold)=>{font(7.5);tc(MUT);txt(k,cols[i],yy);font(7.5,bold?'bold':'normal');tc(INK);txt(v,cols[i]+colW,yy,{align:'right'});return yy+4.3};
+  colHead(0,'Finance');let fy=top+10;
+  const eaa=num(o.num.eaa),oth=num(o.num.other);
+  fy=kv(0,fy,'EAA contribution',eaa!=null?`$${fmt(eaa)}`:'–');
+  fy=kv(0,fy,'Funding from others',oth!=null?`$${fmt(oth)}`:'–');
+  fy=kv(0,fy,'Programme total',eaa!=null&&oth!=null?`$${fmt(eaa+oth)}`:'–',true);
+  fy=kv(0,fy,'Leverage',n.lev.pts!=null?(isFinite(n.lev.l)?`${n.lev.l.toFixed(2)} : 1`:'EAA manages only'):'–');
+  fy=kv(0,fy,'Students',n.stu.pts!=null?fmt(n.stu.v):'–');
+  fy=kv(0,fy,'Expected completion',n.comp.pts!=null?`${n.comp.v}%`:'–');
+  fy=kv(0,fy,'Cost per graduate',n.cost.pts!=null?`$${fmt(n.cost.c)}`:'–',true);
+  fy=kv(0,fy,'Benchmark',n.cost.b?`$${fmt(n.cost.b)}`:'–');
+  fy=kv(0,fy,'Numbers score',`${fp(r.blocks.E.pts)} / 30`,true);
+  colHead(1,'Legal and compliance');let ly=top+10;
+  GATES.forEach(g=>{const v=o.gates[g.id];const c=v==='yes'?[27,112,70]:v==='no'?[180,35,24]:[143,86,0];fc(c);doc.circle(cols[1]+1.2,ly-1.1,1,'F');font(7.5);tc(INK);const ls=wrap(g.t,colW-14,2);txt(ls,cols[1]+4,ly);font(7,'bold');tc(c);txt(v==='yes'?'Pass':v==='no'?'Fail':'Open',cols[1]+colW,ly,{align:'right'});ly+=ls.length*3.4+1.6});
+  ly+=1.5;font(7,'bold');tc(MUT);txt('RISKS FLAGGED',cols[1],ly);ly+=4;
+  const fl=RISKS.filter(x=>o.risk[x.id]);
+  if(!fl.length){font(7.5);tc(INK);txt('None flagged',cols[1],ly);ly+=4.3}
+  fl.slice(0,4).forEach(x=>{font(7.5);tc(INK);const ls=wrap(x.t,colW-10,2);txt(ls,cols[1],ly);font(7.5,'bold');tc([180,35,24]);txt(`-${x.pts}`,cols[1]+colW,ly,{align:'right'});ly+=ls.length*3.4+1.2});
+  ly=kv(1,ly+1,'Risk deduction',`${fp(r.blocks.R.pts)}`,true);
+  colHead(2,'Strategy and management');let sy=top+10;
+  if(t){font(8,'bold');tc(INK);txt(`${t.name}: Tier ${t.tier}, ${TIERS[t.tier].pts} pts`,cols[2],sy);sy+=4;font(7);tc(MUT);const bl=wrap(t.basis,colW,4);txt(bl,cols[2],sy);sy+=bl.length*3.1+2}
+  else{font(7.5);tc(MUT);txt('Country not set',cols[2],sy);sy+=5}
+  font(7,'bold');tc(MUT);txt('VERIFIED EVIDENCE',cols[2],sy);sy+=4;
+  const evs=EVIDENCE.filter(x=>{const v=o.ev[x.id];return v&&v.on&&String(v.src||'').trim()});
+  if(!evs.length){font(7.5);tc(INK);txt('None recorded',cols[2],sy);sy+=4.3}
+  evs.slice(0,3).forEach(x=>{const v=o.ev[x.id];font(7.5,'bold');tc(INK);txt(`+${x.pts}  ${x.t}`,cols[2],sy);sy+=3.4;font(6.8);tc(MUT);const ls=wrap(v.date?`${v.date} · ${v.src}`:v.src,colW,1);txt(ls,cols[2],sy);sy+=4});
+  sy=kv(2,sy+0.5,'QFFD fit',`${fp(r.blocks.C.pts)} / 15`,true);
+  y=Math.max(fy,ly,sy)+3;
+  // checklist grid
+  dc(LINE);doc.setLineWidth(0.3);doc.line(L,y,R,y);y+=5;label('Checklist answers',L,y);
+  font(6.5);tc(MUT);txt('Filled: Yes   Half: Partly   Ring: No   Dash: unanswered',R,y,{align:'right'});y+=4.5;
+  const items=BLOCKS.flatMap(b=>b.items.map(i=>({...i,b:b.id})));const half2=(CW-8)/2;
+  items.forEach((i,k)=>{const col=k<6?0:1,row=k%6,x=L+col*(half2+8),yy=y+row*4.6;const a=o.ans[i.id];
+    dc(INK);doc.setLineWidth(0.3);
+    if(a==='yes'){fc(INK);doc.circle(x+1.3,yy-1.1,1.3,'F')}
+    else if(a==='partly'){doc.circle(x+1.3,yy-1.1,1.3,'S');fc(INK);doc.rect(x,yy-2.4,1.3,2.6,'F')}
+    else if(a==='no'){doc.circle(x+1.3,yy-1.1,1.3,'S')}
+    else{dc(MUT);doc.line(x+0.3,yy-1.1,x+2.3,yy-1.1)}
+    font(7.5);tc(INK);txt(wrap(`${i.b} · ${i.t}`,half2-22,1),x+5,yy);
+    const p=ansPts(i.pts,a);font(7.5,'bold');tc(p==null?MUT:INK);txt(`${p==null?'–':fp(p)} / ${i.pts}`,x+half2,yy,{align:'right'})});
+  y+=6*4.6+2;
+  // sign-off
+  const so=Math.max(y+2,262);const sw4=(CW-12)/4;
+  ['Programme','Finance','Legal','Management'].forEach((s,i)=>{const x=L+i*(sw4+4);fc(SOFT);doc.roundedRect(x,so,sw4,18,2,2,'F');label(s,x+3,so+5);dc([190,195,204]);doc.setLineWidth(0.25);doc.line(x+3,so+13,x+sw4-3,so+13);font(6);tc(MUT);txt('Name, signature, date',x+3,so+16.2)});
+  // footer
+  font(6.5);tc(MUT);txt(`Scored with Opportunity Compass · ${RULES_VERSION} · Score = country + evidence + QFFD fit + need + numbers + delivery - risk`,L,289);
+  txt('1 / 1',R,289,{align:'right'});
+  return doc;
+}
+
+/* ---------- Method and country views ---------- */
+function renderMethod(){
+  const rows=[];
+  const sub=(l,m)=>rows.push(`<tr class="sub"><td colspan="2">${l}</td><td class="n">${m}</td></tr>`);
+  const row=(a,b,c)=>rows.push(`<tr><td>${a}</td><td>${b}</td><td class="n">${c}</td></tr>`);
+  sub('A · Country priority','20');Object.entries(TIERS).forEach(([k,v])=>row(`Tier ${k}`,v.rule,v.pts));
+  sub('B · Verified evidence (capped)','10');EVIDENCE.forEach(x=>row(x.t,x.d+'. Counts once a source is named; the date is optional.','+'+x.pts));
+  BLOCKS.slice(0,2).forEach(b=>{sub(`${b.id} · ${b.name}`,b.max);b.items.forEach(i=>row(i.t,`Yes: ${i.y}. Partly: ${i.p}.`,i.pts))});
+  sub('E · The numbers','30');
+  row('Cost per completing graduate','EAA contribution ÷ (students × completion rate), compared with the benchmark. At or below 50% of benchmark: 10 · 75%: 8 · 100%: 6 · 125%: 4 · 150%: 2 · above 150%: 0','10');
+  row('Co-funding leverage','Funding from others ÷ EAA contribution. 3 or more: 10 · 2: 8 · 1: 6 · 0.5: 4 · above 0: 2 · none: 0. EAA manages with no own funds: 10','10');
+  row('Students reached','2,000 or more: 6 · 1,000: 5 · 500: 4 · 250: 3 · 100: 2 · 25: 1 · fewer: 0','6');
+  row('Expected completion','Partner’s last cohort. 90% or more: 4 · 80%: 3 · 70%: 2 · 60%: 1 · lower: 0','4');
+  const F=BLOCKS[2];sub(`${F.id} · ${F.name}`,F.max);F.items.forEach(i=>row(i.t,`Yes: ${i.y}. Partly: ${i.p}.`,i.pts));
+  sub('R · Risk deductions (capped)','−15');RISKS.forEach(x=>row(x.t,x.d,'−'+x.pts));
+  document.getElementById('v-method').innerHTML=`
+  <div class="card"><h2>How the score works</h2>
+   <p class="lead">Every point comes from a rule written below. The scorer answers facts; the rulebook turns them into points. Nobody types a score directly.</p>
+   <div class="formula">Score = A country + B evidence + C QFFD fit + D need + E numbers + F delivery − R risk &nbsp;·&nbsp; maximum 100, minimum 0</div>
+   <ol class="steps">
+    <li>Check the three gates. Any No stops the opportunity.</li>
+    <li>Pick the beneficiaries’ origin. The country guide sets the points. A country on more than one list takes the higher tier.</li>
+    <li>Tick each evidence signal and name its source. The date is optional. No source, no points.</li>
+    <li>Answer each checklist line Yes, Partly or No against its written definition. Yes earns the full points, Partly half, No none.</li>
+    <li>Enter the figures. Fixed bands convert them to points.</li>
+    <li>Tick the risks that are true today.</li>
+    <li>Read the result: 70 or more, pursue; 55 to 69, shape the weakest block first; 40 to 54, watch; below 40, decline or refer. The result stays provisional until all 100 points are assessed and the gates are checked.</li>
+    <li>Export the one-page PDF for finance, legal and management sign-off.</li>
+   </ol>
+   <p class="note">To reduce bias, have two people score the same opportunity separately, then compare their scorecards line by line. A disagreement points to a definition that needs tightening.</p>
+  </div>
+  <div class="tablewrap"><table><thead><tr><th style="width:26%">Criterion</th><th>Rule</th><th style="width:70px;text-align:right">Points</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>
+  <div class="card"><h2>Cost benchmarks by modality</h2>
+   <p class="lead">Median EAA cost per completing graduate from your finance workbook. Each opportunity compares against the median for its modality, so a master’s abroad is never judged against a TVET diploma.</p>
+   <div class="grid2">${MODALITIES.map((m,i)=>`<label class="f">${m} (USD)<input type="number" min="0" id="bench-${i}" data-bench="${esc(m)}" value="${esc(S.bench[m]??'')}"></label>`).join('')}</div>
+   <p class="note">These stay in this browser. An opportunity can override its benchmark on its own sheet.</p></div>`;
+  document.querySelectorAll('[data-bench]').forEach(el=>el.addEventListener('input',e=>{const v=e.target.value;if(v==='')delete S.bench[e.target.dataset.bench];else S.bench[e.target.dataset.bench]=v;save()}));
+}
+function renderCountries(){
+  document.getElementById('v-countries').innerHTML=`
+  <div class="card"><h2>Country priority guide</h2>
+   <p class="lead">Tiers combine three public signals up to 1 November 2026: MOFA’s statements, QatarEnergy’s investments (from its Annual Review 2024 and announcements since), and QFFD’s priority geographies. MOFA’s most recent list came from the Global Security Forum in October 2026: Afghanistan, Gaza, Sudan, Lebanon, Somalia and Syria. QatarEnergy countries enter at Tier 2. A country on more than one list takes the higher tier.</p></div>
+  ${GROUPS.map(g=>`<div class="tablewrap"><table><thead><tr><th style="width:24%">${g.label}</th><th style="width:70px;text-align:right">Points</th><th>Basis</th></tr></thead><tbody>
+   ${CONTEXTS.filter(c=>c.g===g.id).map(c=>`<tr><td>${esc(c.name)}</td><td class="n">${TIERS[c.tier].pts}</td><td>${c.qe&&c.g!=='qe'?'<span class="tag qe">Also QatarEnergy</span>':''}${esc(c.basis)} ${c.src?`<a href="${c.src}" target="_blank" rel="noopener">Source</a>`:''}${c.src2?` · <a href="${c.src2}" target="_blank" rel="noopener">QatarEnergy source</a>`:''}</td></tr>`).join('')}
+  </tbody></table></div>`).join('')}
+  <p class="note">QatarEnergy countries come from its Annual Review 2024 and from announcements up to 1 November 2026. Countries it entered between 2019 and 2021 but that its latest review does not show are marked to confirm. LNG buyers with no QatarEnergy investment (such as India, Bangladesh, Kuwait and Taiwan) are left out. A strong signal from one country between reviews belongs in block B as evidence (a written request is worth 5 points), not in a tier change.</p>`;
+}
+
+/* ---------- Events ---------- */
+function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),2200)}
+document.getElementById('opplist').addEventListener('click',e=>{const b=e.target.closest('[data-sel]');if(b){S.sel=b.dataset.sel;S.adding=false;save();renderSheet()}});
+const sheet=document.getElementById('sheet');
+function onInput(e){const el=e.target,o=cur();if(!o||S.adding||!el.id)return;
+  if(el.dataset.f){o[el.dataset.f]=el.value;refresh();return}
+  if(el.dataset.ev){const v=o.ev[el.dataset.ev]||(o.ev[el.dataset.ev]={on:false,date:'',src:''});v[el.dataset.k]=el.type==='checkbox'?el.checked:el.value;refresh();return}
+  if(el.dataset.risk){o.risk[el.dataset.risk]=el.checked;refresh();return}
+  if(el.dataset.n){o.num[el.dataset.n]=el.value;refresh();return}
+  if(el.type==='radio'){const key=el.name.slice(o.id.length+1);if(GATES.some(g=>g.id===key))o.gates[key]=el.value;else o.ans[key]=el.value;refresh()}
+}
+sheet.addEventListener('input',onInput);sheet.addEventListener('change',onInput);
+sheet.addEventListener('submit',e=>{if(e.target.id!=='newform')return;e.preventDefault();
+  const name=document.getElementById('new-name').value.trim();if(!name){document.getElementById('new-name').focus();return}
+  const id='u'+Date.now();S.opps.push(blankOpp(id,name,{country:document.getElementById('new-country').value,date:new Date().toISOString().slice(0,10),num:{eaa:'',other:'',students:'',comp:'',modality:document.getElementById('new-mod').value,bench:''}}));
+  S.sel=id;S.adding=false;save();renderSheet();window.scrollTo({top:0})});
+let downloads=null;
+(async()=>{try{downloads=await window.claude?.use?.('downloads')}catch(e){downloads=null}})();
+sheet.addEventListener('click',async e=>{
+  if(e.target.id==='cancelnew'){S.adding=false;renderSheet();return}
+  if(e.target.id==='copy'){const txt=scorecard();try{await navigator.clipboard.writeText(txt);toast('Scorecard copied')}catch(err){toast('Copy is blocked in this view')}}
+  if(e.target.id==='pdf'){const btn=e.target,note=document.getElementById('pdfnote'),o=cur();
+    if(!window.jspdf){note.textContent='The PDF library did not load. Check your connection and reload the page.';return}
+    btn.disabled=true;btn.textContent='Preparing PDF…';note.textContent='';
+    const fname=`${(o.name||'Opportunity').replace(/[^\w\- ]+/g,'').trim().replace(/\s+/g,'-')}-justification.pdf`;
+    let doc;
+    try{doc=buildPDF(o)}catch(err){note.textContent='The PDF could not be built.';btn.disabled=false;btn.textContent='Export one-page PDF';return}
+    try{
+      if(downloads){await downloads.save({filename:fname,data:doc.output('blob')});toast('PDF saved')}
+      else{doc.save(fname);toast('PDF downloaded')}
+    }catch(err){const c=err&&err.code;
+      if(c==='declined')note.textContent='Export cancelled.';
+      else if(c==='rate_limited')note.textContent='A save prompt is already open.';
+      else{try{doc.save(fname);toast('PDF downloaded')}catch(e2){note.textContent='The PDF could not be saved here.'}}}
+    finally{btn.disabled=false;btn.textContent='Export one-page PDF'}}
+  if(e.target.id==='del'){const btn=e.target;if(btn.dataset.armed){S.opps=S.opps.filter(x=>x.id!==S.sel);S.sel=S.opps[0]?.id||null;S.adding=!S.opps.length;save();renderSheet()}else{btn.dataset.armed='1';btn.textContent='Click again to remove';setTimeout(()=>{if(btn.isConnected){delete btn.dataset.armed;btn.textContent='Remove this opportunity'}},3000)}}
+});
+document.getElementById('add').addEventListener('click',()=>{S.adding=true;location.hash='score';renderSheet()});
+function route(){const v=['score','method','countries'].includes(location.hash.slice(1))?location.hash.slice(1):'score';
+  ['score','method','countries'].forEach(k=>{document.getElementById('v-'+k).hidden=k!==v;document.querySelector(`[data-view="${k}"]`).setAttribute('aria-current',k===v?'page':'false')});
+  if(v==='method')renderMethod();if(v==='countries')renderCountries();if(v==='score')renderSheet();}
+window.addEventListener('hashchange',route);
+renderList();route();
+</script>
+
+</body></html>
